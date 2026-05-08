@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { Wand2, Plus, Shirt, Sparkles, ImagePlus, Brain, User } from "lucide-react";
+import { Wand2, Plus, Shirt, Sparkles, ImagePlus, Brain, User, Zap } from "lucide-react";
 import ImageUploader from "@/components/ImageUploader";
 import BodyForm from "@/components/BodyForm";
 import ClothingCard from "@/components/ClothingCard";
@@ -9,9 +9,10 @@ import TryOnResult from "@/components/TryOnResult";
 import GenerateImageModal from "@/components/GenerateImageModal";
 import OutfitSuggestion from "@/components/OutfitSuggestion";
 import AIStyleProfile from "@/components/AIStyleProfile";
+import CLIPMatcher from "@/components/CLIPMatcher";
 import { ClothingItem } from "@/lib/types";
 
-type Tab = "tryon" | "closet" | "stylist" | "profile";
+type Tab = "tryon" | "closet" | "stylist" | "profile" | "clip";
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<Tab>("tryon");
@@ -208,6 +209,17 @@ export default function Home() {
               <User size={14} />
               Style AI
             </button>
+            <button
+              onClick={() => setActiveTab("clip")}
+              className={`flex items-center gap-1.5 rounded-lg px-4 py-1.5 text-sm font-medium transition ${
+                activeTab === "clip"
+                  ? "bg-white text-blue-700 shadow-sm"
+                  : "text-zinc-500 hover:text-zinc-700"
+              }`}
+            >
+              <Zap size={14} />
+              CLIP
+            </button>
           </div>
         </div>
       </header>
@@ -384,6 +396,29 @@ export default function Home() {
             />
           </div>
         )}
+        {/* ===== TAB: CLIP MATCHER ===== */}
+        {activeTab === "clip" && (
+          <div className="mx-auto max-w-2xl">
+            <div className="mb-6">
+              <h2 className="text-xl font-bold text-zinc-900">⚡ CLIP Visual Matcher</h2>
+              <p className="text-sm text-zinc-400 mt-0.5">
+                AI nhìn ảnh thật → tính độ tương thích → chọn combo đẹp nhất
+              </p>
+            </div>
+            <CLIPMatcher
+              closet={closet}
+              onTryOutfit={(items) => {
+                if (items[0]) {
+                  setClothBase64(items[0].imageBase64 || "");
+                  setClothPreview(items[0].imageUrl);
+                  setClothMime("image/jpeg");
+                  setActiveTab("tryon");
+                }
+              }}
+            />
+          </div>
+        )}
+
         {/* ===== TAB: AI STYLE PROFILE ===== */}
         {activeTab === "profile" && (
           <div className="mx-auto max-w-2xl">
