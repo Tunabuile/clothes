@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react";
 import { Wand2, Plus, Shirt, Sparkles, ImagePlus, Brain, User, Zap, Bot, Recycle } from "lucide-react";
 import ImageUploader from "@/components/ImageUploader";
+import MultiImageUploader, { UploadedImage } from "@/components/MultiImageUploader";
 import BodyForm from "@/components/BodyForm";
 import ClothingCard from "@/components/ClothingCard";
 import TryOnResult from "@/components/TryOnResult";
@@ -13,6 +14,7 @@ import CLIPMatcher from "@/components/CLIPMatcher";
 import AutoLearning from "@/components/AutoLearning";
 import LabelScanner from "@/components/LabelScanner";
 import { ClothingItem } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 type Tab = "tryon" | "closet" | "stylist" | "profile" | "clip" | "auto" | "recycle";
 
@@ -23,19 +25,43 @@ export default function Home() {
   const [personBase64, setPersonBase64] = useState("");
   const [personPreview, setPersonPreview] = useState("");
 
-  // Ảnh quần áo đang chọn để thử
+  // Multi ảnh quần áo
+  const [clothImages, setClothImages] = useState<UploadedImage[]>([]);
+  const [selectedClothId, setSelectedClothId] = useState<string | null>(null);
+
+  // Ảnh quần áo đang chọn để thử (lấy từ clothImages[0] hoặc generated)
   const [clothBase64, setClothBase64] = useState("");
   const [clothPreview, setClothPreview] = useState("");
   const [clothMime, setClothMime] = useState("image/jpeg");
+
+  // Sync clothImages[0] → clothBase64 (cho try-on)
+  const handleClothImagesChange = (imgs: UploadedImage[]) => {
+    setClothImages(imgs);
+    const first = imgs[0] || null;
+    setSelectedClothId(first?.id || null);
+
+    if (first) {
+      setClothBase64(first.base64);
+      setClothPreview(first.previewUrl);
+      setClothMime(first.mimeType);
+    } else {
+      setClothBase64("");
+      setClothPreview("");
+      setClothMime("image/jpeg");
+    }
+  };
 
   // Thông số cơ thể
   const [height, setHeight] = useState(170);
   const [weight, setWeight] = useState(60);
 
   // Kết quả try-on
-  const [resultUrl, setResultUrl] = useState("");
+  const [resultText, setResultText] = useState("");
+  const [generatedImageUrl, setGeneratedImageUrl] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const [error, setError] = useState("");
+  const [userRequest, setUserRequest] = useState("");
 
   // Tủ đồ (lưu local state, sau này kết nối Supabase)
   const [closet, setCloset] = useState<ClothingItem[]>([]);
@@ -44,70 +70,81 @@ export default function Home() {
   // Modal tạo ảnh AI
   const [showGenerateModal, setShowGenerateModal] = useState(false);
 
-  // Thêm đồ vào tủ (có Gemini phân tích)
+  // Thêm đồ vào tủ (có Gemini phân tích) — lưu tất cả ảnh đã upload
   const handleAddToCloset = useCallback(async () => {
-    if (!clothBase64) return;
+    const targets = clothImages.length > 0
+      ? clothImages
+      : clothBase64 ? [{ id: crypto.randomUUID(), base64: clothBase64, mimeType: clothMime, previewUrl: clothPreview }]
+      : [];
+
+    if (targets.length === 0) return;
     setIsAnalyzing(true);
     setError("");
 
     try {
-      const res = await fetch("/api/analyze-clothing", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageBase64: clothBase64, mimeType: clothMime }),
-      });
-      const data = await res.json();
+      for (const img of targets) {
+        const res = await fetch("/api/analyze-clothing", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ imageBase64: img.base64, mimeType: img.mimeType }),
+        });
+        const data = await res.json();
 
-      const newItem: ClothingItem = {
-        id: crypto.randomUUID(),
-        imageUrl: clothPreview,
-        imageBase64: clothBase64,
-        type: data.data?.type || "Unknown",
-        color: data.data?.color || "Unknown",
-        material: data.data?.material || "Unknown",
-        style: data.data?.style || "Casual",
-        condition: data.data?.condition || "Good",
-        addedAt: new Date(),
-        tryOnCount: 0,
-      };
-
-      setCloset((prev) => [newItem, ...prev]);
+        const newItem: ClothingItem = {
+          id: crypto.randomUUID(),
+          imageUrl: img.previewUrl,
+          imageBase64: img.base64,
+          type: data.data?.type || "Unknown",
+          color: data.data?.color || "Unknown",
+          material: data.data?.material || "Unknown",
+          style: data.data?.style || "Casual",
+          condition: data.data?.condition || "Good",
+          addedAt: new Date(),
+          tryOnCount: 0,
+        };
+        setCloset((prev) => [newItem, ...prev]);
+      }
       setActiveTab("closet");
     } catch {
       setError("Không thể phân tích ảnh. Kiểm tra GEMINI_API_KEY.");
     } finally {
       setIsAnalyzing(false);
     }
-  }, [clothBase64, clothMime, clothPreview]);
+  }, [clothImages, clothBase64, clothMime, clothPreview]);
 
   // Virtual Try-On
   const handleTryOn = useCallback(
     async (clothItem?: ClothingItem) => {
-      const targetBase64 = clothItem?.imageBase64 || clothBase64;
+      const selectedImage = clothImages.find((img) => img.id === selectedClothId);
+      const targetBase64 = clothItem?.imageBase64 || clothBase64 || selectedImage?.base64;
+      const targetMime = clothItem?.imageBase64 ? clothMime : selectedImage?.mimeType || clothMime;
       if (!personBase64 || !targetBase64) {
         setError("Cần cả ảnh người và ảnh quần áo!");
         return;
       }
 
       setIsProcessing(true);
-      setResultUrl("");
+      setResultText("");
+      setGeneratedImageUrl("");
       setError("");
 
       try {
-        const res = await fetch("/api/try-on", {
+        const res = await fetch("/api/describe-outfit", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             personImageBase64: personBase64,
             clothImageBase64: targetBase64,
-            description: clothItem?.type || "clothing item",
+            height,
+            weight,
+            userRequest,
           }),
         });
         const data = await res.json();
 
         if (!res.ok) throw new Error(data.error);
 
-        setResultUrl(data.resultImageUrl);
+        setResultText(data.resultText || "AI chưa trả về kết quả.");
 
         // Cập nhật tryOnCount nếu từ tủ đồ
         if (clothItem) {
@@ -127,12 +164,34 @@ export default function Home() {
         setIsProcessing(false);
       }
     },
-    [personBase64, clothBase64]
+    [personBase64, clothBase64, clothImages, selectedClothId, clothMime, height, weight, userRequest]
   );
 
   const handleDeleteFromCloset = (id: string) => {
     setCloset((prev) => prev.filter((c) => c.id !== id));
   };
+
+  const handleGenerateIllustration = useCallback(async () => {
+    if (!resultText) return;
+    setIsGeneratingImage(true);
+    setError("");
+
+    try {
+      const prompt = `${resultText} ${userRequest ? `Yêu cầu người dùng: ${userRequest}` : ""}`;
+      const res = await fetch("/api/generate-image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt, style: "realistic", aspectRatio: "1:1" }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Lỗi tạo ảnh");
+      setGeneratedImageUrl(`data:${data.mimeType};base64,${data.imageBase64}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Không tạo được ảnh.");
+    } finally {
+      setIsGeneratingImage(false);
+    }
+  }, [resultText, userRequest]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-violet-50 via-white to-pink-50">
@@ -141,9 +200,14 @@ export default function Home() {
         <GenerateImageModal
           onClose={() => setShowGenerateModal(false)}
           onUseImage={(b64, mime, preview) => {
-            setClothBase64(b64);
-            setClothMime(mime);
-            setClothPreview(preview);
+            const newImg: UploadedImage = {
+              id: crypto.randomUUID(),
+              base64: b64,
+              mimeType: mime,
+              previewUrl: preview,
+              name: "AI Generated",
+            };
+            handleClothImagesChange([...clothImages, newImg]);
           }}
         />
       )}
@@ -171,7 +235,7 @@ export default function Home() {
               }`}
             >
               <Wand2 size={14} />
-              Thử đồ
+              Phối đồ thông minh
             </button>
             <button
               onClick={() => setActiveTab("closet")}
@@ -249,7 +313,7 @@ export default function Home() {
       </header>
 
       <main className="mx-auto max-w-6xl px-6 py-8">
-        {/* ===== TAB: THỬ ĐỒ ===== */}
+        {/* ===== TAB: PHỐI ĐỒ THÔNG MINH ===== */}
         {activeTab === "tryon" && (
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
             {/* Cột trái: Upload + Body */}
@@ -277,16 +341,62 @@ export default function Home() {
             {/* Cột giữa: Ảnh đồ + nút */}
             <div className="flex flex-col gap-5 lg:col-span-1">
               <div className="flex flex-col gap-2">
-                <ImageUploader
+                <MultiImageUploader
                   label="👕 Ảnh quần áo"
-                  hint="Chụp đồ trên nền trắng để AI nhận diện tốt hơn"
-                  previewUrl={clothPreview}
-                  onImageChange={(b64, mime, preview) => {
-                    setClothBase64(b64);
-                    setClothMime(mime);
-                    setClothPreview(preview);
-                  }}
+                  hint="Upload nhiều món cùng lúc — chọn ảnh để thử và lưu vào tủ đồ"
+                  images={clothImages}
+                  onChange={handleClothImagesChange}
+                  maxImages={10}
                 />
+
+                {clothImages.length > 0 && (
+                  <div className="rounded-2xl border border-zinc-200 bg-white p-3">
+                    <p className="mb-2 text-sm font-semibold text-zinc-700">
+                      Chọn món quần áo để AI nhận diện và thử
+                    </p>
+                    <div className="grid grid-cols-4 gap-2">
+                      {clothImages.map((img) => (
+                        <button
+                          key={img.id}
+                          onClick={() => {
+                            setSelectedClothId(img.id);
+                            setClothBase64(img.base64);
+                            setClothPreview(img.previewUrl);
+                            setClothMime(img.mimeType);
+                          }}
+                          className={cn(
+                            "relative overflow-hidden rounded-2xl border bg-zinc-50 transition",
+                            selectedClothId === img.id
+                              ? "border-violet-500 ring-2 ring-violet-200"
+                              : "border-zinc-200 hover:border-violet-300"
+                          )}
+                        >
+                          <img
+                            src={img.previewUrl}
+                            alt={img.name || "cloth"}
+                            className="h-20 w-full object-contain"
+                          />
+                          <span className="absolute left-2 top-2 rounded-full bg-white/90 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-zinc-600">
+                            {img.name ? img.name.replace(/\..+$/, "") : "Món"}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="rounded-2xl border border-zinc-200 bg-white p-4">
+                  <label className="text-sm font-semibold text-zinc-700">
+                    Yêu cầu AI
+                  </label>
+                  <textarea
+                    value={userRequest}
+                    onChange={(e) => setUserRequest(e.target.value)}
+                    placeholder="Nhập yêu cầu phong cách, dịp, màu sắc..."
+                    className="mt-3 min-h-[96px] w-full rounded-2xl border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-700 outline-none transition focus:border-violet-400"
+                  />
+                </div>
+
                 {/* Nút tạo ảnh AI */}
                 <button
                   onClick={() => setShowGenerateModal(true)}
@@ -305,16 +415,20 @@ export default function Home() {
                   className="flex items-center justify-center gap-2 rounded-2xl bg-violet-600 py-3.5 text-sm font-semibold text-white shadow-lg shadow-violet-200 hover:bg-violet-700 disabled:opacity-40 disabled:cursor-not-allowed transition"
                 >
                   <Wand2 size={16} />
-                  {isProcessing ? "AI đang xử lý..." : "✨ Thử đồ ảo"}
+                  {isProcessing ? "AI đang xử lý..." : "✨ Phối đồ thông minh"}
                 </button>
 
                 <button
                   onClick={handleAddToCloset}
-                  disabled={!clothBase64 || isAnalyzing}
+                  disabled={clothImages.length === 0 && !clothBase64 || isAnalyzing}
                   className="flex items-center justify-center gap-2 rounded-2xl border border-zinc-200 bg-white py-3 text-sm font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
                 >
                   <Plus size={15} />
-                  {isAnalyzing ? "Đang phân tích..." : "Lưu vào tủ đồ"}
+                  {isAnalyzing
+                    ? "Đang phân tích..."
+                    : clothImages.length > 1
+                    ? `Lưu ${clothImages.length} món vào tủ đồ`
+                    : "Lưu vào tủ đồ"}
                 </button>
               </div>
 
@@ -331,9 +445,11 @@ export default function Home() {
                 🎨 Kết quả
               </p>
               <TryOnResult
-                resultImageUrl={resultUrl}
+                resultText={resultText}
+                generatedImageUrl={generatedImageUrl}
                 isLoading={isProcessing}
-                onRetry={() => handleTryOn()}
+                isGeneratingImage={isGeneratingImage}
+                onGenerateImage={handleGenerateIllustration}
               />
             </div>
           </div>

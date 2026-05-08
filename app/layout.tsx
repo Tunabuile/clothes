@@ -8,8 +8,8 @@ const geist = Geist({
 });
 
 export const metadata: Metadata = {
-  title: "FitAI – Virtual Try-On",
-  description: "Thử đồ ảo thông minh với AI",
+  title: "FitAI – Phối đồ thông minh",
+  description: "Phối đồ thông minh với AI",
 };
 
 export default function RootLayout({

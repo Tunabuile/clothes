@@ -5,10 +5,8 @@
  */
 
 import { getRatedOutfits, saveStyleProfile, getStyleProfile } from "./supabase";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { generateText, extractJSON } from "./hf";
 import { evaluateColorCombo } from "./colorTheory";
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
 const AUTO_TRAIN_THRESHOLD = 3; // train sau mỗi 3 feedback mới
 
@@ -58,7 +56,7 @@ export async function deepTrainStyleProfile(
   const outfits = ratedOutfits || (await getRatedOutfits());
   if (outfits.length === 0) return null;
 
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
   // Phân tích color theory từ các outfit được rate cao
   const highRatedOutfits = outfits.filter((o) => (o.user_rating || 0) >= 4);
@@ -103,12 +101,8 @@ Phân tích và trả về JSON (chỉ JSON):
   ]
 }`;
 
-  const result = await model.generateContent(prompt);
-  const text = result.response.text();
-  const jsonMatch = text.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) throw new Error("AI không phân tích được");
-
-  const profile = JSON.parse(jsonMatch[0]);
+  const text = await generateText(prompt);
+  const profile = extractJSON(text);
 
   await saveStyleProfile({
     user_id: userId,

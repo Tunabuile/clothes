@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { computeCompatibilityMatrix, findBestCombos } from "@/lib/clipMatcher";
-import { GoogleGenerativeAI } from "@google/generative-ai";
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+import { generateText, extractJSON } from "@/lib/hf";
 
 export async function POST(req: NextRequest) {
   try {
@@ -38,7 +36,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Dùng Gemini để viết reasoning cho từng combo CLIP đã chọn
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
     const clothMap = Object.fromEntries(
       clothes.map((c: { id: string; type: string; color: string; material: string; style: string }) => [c.id, c])
@@ -101,12 +99,9 @@ Viết reasoning và tips cho từng combo. Trả về JSON (chỉ JSON):
 }
 Điền đúng items IDs và clipScore cho từng combo.`;
 
-    const result = await model.generateContent(prompt);
-    const text = result.response.text();
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error("AI không trả về kết quả hợp lệ");
-
-    const parsed = JSON.parse(jsonMatch[0]);
+    const result = await generateText(prompt);
+    const parsed = extractJSON(result);
+    if (!parsed) throw new Error("AI không trả về kết quả hợp lệ");
 
     // Gán đúng items IDs từ CLIP vào từng combo
     const finalCombos = parsed.combos.map(

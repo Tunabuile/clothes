@@ -87,7 +87,7 @@ export async function learnFromFashionImages(
   imageUrls: string[],
   userId = "default"
 ): Promise<{ learned: number; insights: string[] }> {
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
   const insights: string[] = [];
   let learned = 0;
 
@@ -161,7 +161,7 @@ export async function autoAnalyzeClothingFromUrl(imageUrl: string): Promise<{
   tags: string[];
   trendScore: number;
 }> {
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
   // Download ảnh
   const res = await fetch(imageUrl);
@@ -203,7 +203,7 @@ export async function generateFashionInspirations(
   outfits: { name: string; items: string[]; description: string; score: number }[];
   trendingNow: string[];
 }> {
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
   const trendContext = `
 Xu hướng 2025: ${FASHION_TRENDS_2025.styles.hot.join(", ")}
