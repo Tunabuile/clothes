@@ -69,37 +69,6 @@ export async function generateText(prompt: string): Promise<string> {
   return data?.generated_text || "";
 }
 
-// ─── TEXT GENERATION (Mistral 7B) ────────────────────────────
-
-export async function generateText(prompt: string): Promise<string> {
-  const res = await fetch(
-    "https://api-inference.huggingface.co/models/HuggingFaceH4/zephyr-7b-beta",
-    {
-      method: "POST",
-      headers: HEADERS,
-      body: JSON.stringify({
-        inputs: `<|system|>You are a helpful fashion assistant.</s><|user|>${prompt}</s><|assistant|>`,
-        parameters: {
-          max_new_tokens: 1024,
-          temperature: 0.7,
-          return_full_text: false,
-          stop: ["</s>", "<|user|>"],
-        },
-      }),
-    }
-  );
-
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`HF Text error ${res.status}: ${err}`);
-  }
-
-  const data = await res.json();
-  // Handle both array and object responses
-  if (Array.isArray(data)) return data[0]?.generated_text || "";
-  return data?.generated_text || "";
-}
-
 // ─── IMAGE CAPTIONING (BLIP) ─────────────────────────────────
 
 export async function captionImage(imageBase64: string): Promise<string> {
