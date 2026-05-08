@@ -1,15 +1,16 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { Wand2, Plus, Shirt, Sparkles, ImagePlus } from "lucide-react";
+import { Wand2, Plus, Shirt, Sparkles, ImagePlus, Brain } from "lucide-react";
 import ImageUploader from "@/components/ImageUploader";
 import BodyForm from "@/components/BodyForm";
 import ClothingCard from "@/components/ClothingCard";
 import TryOnResult from "@/components/TryOnResult";
 import GenerateImageModal from "@/components/GenerateImageModal";
+import OutfitSuggestion from "@/components/OutfitSuggestion";
 import { ClothingItem } from "@/lib/types";
 
-type Tab = "tryon" | "closet";
+type Tab = "tryon" | "closet" | "stylist";
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<Tab>("tryon");
@@ -184,6 +185,17 @@ export default function Home() {
                 </span>
               )}
             </button>
+            <button
+              onClick={() => setActiveTab("stylist")}
+              className={`flex items-center gap-1.5 rounded-lg px-4 py-1.5 text-sm font-medium transition ${
+                activeTab === "stylist"
+                  ? "bg-white text-violet-700 shadow-sm"
+                  : "text-zinc-500 hover:text-zinc-700"
+              }`}
+            >
+              <Brain size={14} />
+              Phối đồ AI
+            </button>
           </div>
         </div>
       </header>
@@ -335,6 +347,29 @@ export default function Home() {
                 ))}
               </div>
             )}
+          </div>
+        )}
+        {/* ===== TAB: PHỐI ĐỒ AI ===== */}
+        {activeTab === "stylist" && (
+          <div className="mx-auto max-w-2xl">
+            <div className="mb-6">
+              <h2 className="text-xl font-bold text-zinc-900">🧠 AI Stylist</h2>
+              <p className="text-sm text-zinc-400 mt-0.5">
+                AI nhìn vào tủ đồ của bạn và tư duy phối outfit phù hợp
+              </p>
+            </div>
+            <OutfitSuggestion
+              closet={closet}
+              onTryOutfit={(items) => {
+                // Lấy món đầu tiên để thử đồ, chuyển sang tab tryon
+                if (items[0]) {
+                  setClothBase64(items[0].imageBase64 || "");
+                  setClothPreview(items[0].imageUrl);
+                  setClothMime("image/jpeg");
+                  setActiveTab("tryon");
+                }
+              }}
+            />
           </div>
         )}
       </main>
