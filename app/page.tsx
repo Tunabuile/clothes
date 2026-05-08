@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { Wand2, Plus, Shirt, Sparkles, ImagePlus, Brain, User, Zap, Bot } from "lucide-react";
+import { Wand2, Plus, Shirt, Sparkles, ImagePlus, Brain, User, Zap, Bot, Recycle } from "lucide-react";
 import ImageUploader from "@/components/ImageUploader";
 import BodyForm from "@/components/BodyForm";
 import ClothingCard from "@/components/ClothingCard";
@@ -11,9 +11,10 @@ import OutfitSuggestion from "@/components/OutfitSuggestion";
 import AIStyleProfile from "@/components/AIStyleProfile";
 import CLIPMatcher from "@/components/CLIPMatcher";
 import AutoLearning from "@/components/AutoLearning";
+import LabelScanner from "@/components/LabelScanner";
 import { ClothingItem } from "@/lib/types";
 
-type Tab = "tryon" | "closet" | "stylist" | "profile" | "clip" | "auto";
+type Tab = "tryon" | "closet" | "stylist" | "profile" | "clip" | "auto" | "recycle";
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<Tab>("tryon");
@@ -232,6 +233,17 @@ export default function Home() {
               <Bot size={14} />
               Auto AI
             </button>
+            <button
+              onClick={() => setActiveTab("recycle")}
+              className={`flex items-center gap-1.5 rounded-lg px-4 py-1.5 text-sm font-medium transition ${
+                activeTab === "recycle"
+                  ? "bg-white text-green-700 shadow-sm"
+                  : "text-zinc-500 hover:text-zinc-700"
+              }`}
+            >
+              <Recycle size={14} />
+              Tái chế
+            </button>
           </div>
         </div>
       </header>
@@ -408,6 +420,19 @@ export default function Home() {
             />
           </div>
         )}
+        {/* ===== TAB: TÁI CHẾ ===== */}
+        {activeTab === "recycle" && (
+          <div className="mx-auto max-w-2xl">
+            <div className="mb-6">
+              <h2 className="text-xl font-bold text-zinc-900">♻️ Scan Tem & Tái Chế</h2>
+              <p className="text-sm text-zinc-400 mt-0.5">
+                Chụp tem thành phần áo → AI đọc chất liệu → gợi ý tái chế thông minh
+              </p>
+            </div>
+            <LabelScanner />
+          </div>
+        )}
+
         {/* ===== TAB: AUTO LEARNING ===== */}
         {activeTab === "auto" && (
           <div className="mx-auto max-w-2xl">
