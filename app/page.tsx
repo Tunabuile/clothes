@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { Wand2, Plus, Shirt, Sparkles, ImagePlus, Brain, User, Zap } from "lucide-react";
+import { Wand2, Plus, Shirt, Sparkles, ImagePlus, Brain, User, Zap, Bot } from "lucide-react";
 import ImageUploader from "@/components/ImageUploader";
 import BodyForm from "@/components/BodyForm";
 import ClothingCard from "@/components/ClothingCard";
@@ -10,9 +10,10 @@ import GenerateImageModal from "@/components/GenerateImageModal";
 import OutfitSuggestion from "@/components/OutfitSuggestion";
 import AIStyleProfile from "@/components/AIStyleProfile";
 import CLIPMatcher from "@/components/CLIPMatcher";
+import AutoLearning from "@/components/AutoLearning";
 import { ClothingItem } from "@/lib/types";
 
-type Tab = "tryon" | "closet" | "stylist" | "profile" | "clip";
+type Tab = "tryon" | "closet" | "stylist" | "profile" | "clip" | "auto";
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<Tab>("tryon");
@@ -220,6 +221,17 @@ export default function Home() {
               <Zap size={14} />
               CLIP
             </button>
+            <button
+              onClick={() => setActiveTab("auto")}
+              className={`flex items-center gap-1.5 rounded-lg px-4 py-1.5 text-sm font-medium transition ${
+                activeTab === "auto"
+                  ? "bg-white text-green-700 shadow-sm"
+                  : "text-zinc-500 hover:text-zinc-700"
+              }`}
+            >
+              <Bot size={14} />
+              Auto AI
+            </button>
           </div>
         </div>
       </header>
@@ -396,6 +408,19 @@ export default function Home() {
             />
           </div>
         )}
+        {/* ===== TAB: AUTO LEARNING ===== */}
+        {activeTab === "auto" && (
+          <div className="mx-auto max-w-2xl">
+            <div className="mb-6">
+              <h2 className="text-xl font-bold text-zinc-900">🤖 AI Tự Động Học</h2>
+              <p className="text-sm text-zinc-400 mt-0.5">
+                AI tự crawl ảnh, tự phân tích, tự học xu hướng — không cần user làm gì
+              </p>
+            </div>
+            <AutoLearning />
+          </div>
+        )}
+
         {/* ===== TAB: CLIP MATCHER ===== */}
         {activeTab === "clip" && (
           <div className="mx-auto max-w-2xl">
