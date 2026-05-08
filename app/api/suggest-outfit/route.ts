@@ -1,18 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { getStyleProfile } from "@/lib/supabase";
+import { buildPersonalizedPrompt } from "@/lib/styleTrainer";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
-
-export interface OutfitCombo {
-  id: string;
-  name: string;
-  occasion: string;
-  vibe: string;
-  items: string[]; // item IDs
-  reasoning: string;
-  tips: string;
-  score: number; // 1-10
-}
 
 export async function POST(req: NextRequest) {
   try {
@@ -25,9 +16,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Lấy style profile đã học từ feedback của user
+    const styleProfile = await getStyleProfile("default").catch(() => null);
+    const personalizedContext = buildPersonalizedPrompt(styleProfile);
+
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-    // Build parts: text + ảnh từng món đồ
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const parts: any[] = [];
 
@@ -38,59 +32,57 @@ export async function POST(req: NextRequest) {
       )
       .join("\n");
 
-    const prompt = `Bạn là một stylist thời trang chuyên nghiệp. Hãy phân tích các món đồ sau và tư duy phối outfit.
+    const prompt = `Bạn là một AI stylist thời trang chuyên nghiệp. Hãy phân tích các món đồ và tư duy phối outfit.
 
 DANH SÁCH ĐỒ TRONG TỦ:
 ${clothesList}
 
 DỊP MẶC: ${occasion || "Hàng ngày"}
 THỜI TIẾT: ${weather || "Bình thường"}
+${personalizedContext}
 
-Hãy đề xuất 3 combo outfit khác nhau từ các món đồ trên. Trả về JSON với format sau (chỉ JSON, không giải thích thêm):
+Đề xuất 3 combo outfit khác nhau. Trả về JSON (chỉ JSON):
 {
   "combos": [
     {
       "id": "combo_1",
       "name": "Tên outfit ngắn gọn",
       "occasion": "Dịp phù hợp",
-      "vibe": "Cảm giác/phong cách (VD: Năng động, Thanh lịch, Thoải mái...)",
+      "vibe": "Cảm giác/phong cách",
       "items": ["item_id_1", "item_id_2"],
-      "reasoning": "Lý do tại sao các món này hợp nhau (màu sắc, chất liệu, phong cách)",
-      "tips": "Mẹo mặc thêm (phụ kiện, giày, cách mix...)",
+      "reasoning": "Lý do tại sao các món này hợp nhau",
+      "tips": "Mẹo mặc thêm (phụ kiện, giày...)",
       "score": 8
     }
   ]
-}
-
-Lưu ý:
-- Chỉ dùng ID từ danh sách trên
-- Mỗi combo 2-4 món đồ
-- Reasoning phải cụ thể về màu sắc và phong cách
-- Tips thực tế và hữu ích`;
+}`;
 
     parts.push({ text: prompt });
 
-    // Thêm ảnh từng món đồ nếu có
+    // Thêm ảnh thật của từng món đồ để AI nhìn trực tiếp
     for (const cloth of clothes) {
       if (cloth.imageBase64) {
         parts.push({
-          inlineData: {
-            data: cloth.imageBase64,
-            mimeType: "image/jpeg",
-          },
+          inlineData: { data: cloth.imageBase64, mimeType: "image/jpeg" },
         });
       }
     }
 
     const result = await model.generateContent(parts);
     const text = result.response.text();
-
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) throw new Error("AI không trả về kết quả hợp lệ");
 
     const parsed = JSON.parse(jsonMatch[0]);
 
-    return NextResponse.json({ success: true, combos: parsed.combos });
+    return NextResponse.json({
+      success: true,
+      combos: parsed.combos,
+      hasPersonalization: !!styleProfile,
+      profileSummary: styleProfile
+        ? `AI đã học từ ${styleProfile.total_outfits || 0} outfit của bạn`
+        : null,
+    });
   } catch (error) {
     console.error("Suggest outfit error:", error);
     return NextResponse.json(

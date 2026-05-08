@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { Sparkles, Brain, Star, ChevronDown, ChevronUp, Wand2 } from "lucide-react";
+import { Sparkles, Brain, Star, ChevronDown, ChevronUp, Wand2, MessageSquare } from "lucide-react";
 import Image from "next/image";
 import { ClothingItem } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import OutfitFeedback from "./OutfitFeedback";
 
 interface OutfitCombo {
   id: string;
@@ -15,6 +16,8 @@ interface OutfitCombo {
   reasoning: string;
   tips: string;
   score: number;
+  savedId?: string; // ID sau khi lưu vào DB
+  rated?: boolean;
 }
 
 interface OutfitSuggestionProps {
@@ -53,6 +56,9 @@ export default function OutfitSuggestion({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [feedbackComboId, setFeedbackComboId] = useState<string | null>(null);
+  const [hasPersonalization, setHasPersonalization] = useState(false);
+  const [profileSummary, setProfileSummary] = useState("");
 
   const handleSuggest = async () => {
     if (closet.length < 2) {
@@ -84,8 +90,32 @@ export default function OutfitSuggestion({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
 
-      setCombos(data.combos || []);
-      if (data.combos?.length > 0) setExpandedId(data.combos[0].id);
+      const newCombos: OutfitCombo[] = data.combos || [];
+      setCombos(newCombos);
+      setHasPersonalization(data.hasPersonalization || false);
+      setProfileSummary(data.profileSummary || "");
+      if (newCombos.length > 0) setExpandedId(newCombos[0].id);
+
+      // Lưu từng combo vào DB để track feedback
+      for (const combo of newCombos) {
+        const savedId = crypto.randomUUID();
+        try {
+          await fetch("/api/outfit-feedback", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              id: savedId,
+              item_ids: combo.items,
+              occasion,
+              weather,
+              ai_reasoning: combo.reasoning,
+              ai_tips: combo.tips,
+              ai_score: combo.score,
+            }),
+          });
+          combo.savedId = savedId;
+        } catch { /* lưu DB thất bại không block UI */ }
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Lỗi phân tích outfit");
     } finally {
@@ -98,6 +128,29 @@ export default function OutfitSuggestion({
     itemIds
       .map((id) => closet.find((c) => c.id === id))
       .filter(Boolean) as ClothingItem[];
+
+  const handleFeedback = async (
+    combo: OutfitCombo,
+    rating: number,
+    feedback: string,
+    worn: boolean
+  ) => {
+    if (!combo.savedId) return;
+    await fetch("/api/outfit-feedback", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        outfitId: combo.savedId,
+        rating,
+        feedback,
+        worn,
+      }),
+    });
+    setCombos((prev) =>
+      prev.map((c) => (c.id === combo.id ? { ...c, rated: true } : c))
+    );
+    setFeedbackComboId(null);
+  };
 
   return (
     <div className="flex flex-col gap-6">
@@ -173,6 +226,12 @@ export default function OutfitSuggestion({
             ? "AI đang tư duy phối đồ..."
             : `✨ Phối đồ cho tôi (${closet.length} món)`}
         </button>
+
+        {hasPersonalization && profileSummary && (
+          <p className="mt-2 text-center text-xs text-violet-600 font-medium">
+            🧠 {profileSummary}
+          </p>
+        )}
 
         {closet.length < 2 && (
           <p className="mt-2 text-center text-xs text-zinc-400">
@@ -348,13 +407,43 @@ export default function OutfitSuggestion({
 
                     {/* Try on button */}
                     {comboItems.length > 0 && (
-                      <button
-                        onClick={() => onTryOutfit(comboItems)}
-                        className="flex items-center justify-center gap-2 rounded-xl bg-violet-600 py-2.5 text-sm font-semibold text-white hover:bg-violet-700 transition"
-                      >
-                        <Wand2 size={14} />
-                        Thử outfit này
-                      </button>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => onTryOutfit(comboItems)}
+                          className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-violet-600 py-2.5 text-sm font-semibold text-white hover:bg-violet-700 transition"
+                        >
+                          <Wand2 size={14} />
+                          Thử outfit này
+                        </button>
+                        {/* Feedback button */}
+                        {combo.rated ? (
+                          <div className="flex items-center gap-1 rounded-xl border border-green-200 bg-green-50 px-3 text-xs font-medium text-green-600">
+                            ✅ Đã rate
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => setFeedbackComboId(combo.id)}
+                            className="flex items-center gap-1.5 rounded-xl border border-zinc-200 px-3 py-2.5 text-sm text-zinc-500 hover:border-violet-400 hover:text-violet-600 transition"
+                          >
+                            <MessageSquare size={14} />
+                            Rate
+                          </button>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Feedback panel */}
+                    {feedbackComboId === combo.id && (
+                      <div className="rounded-xl border border-violet-200 bg-violet-50 overflow-hidden">
+                        <OutfitFeedback
+                          outfitId={combo.savedId || combo.id}
+                          outfitName={combo.name}
+                          onSubmit={(rating, feedback, worn) =>
+                            handleFeedback(combo, rating, feedback, worn)
+                          }
+                          onClose={() => setFeedbackComboId(null)}
+                        />
+                      </div>
                     )}
                   </div>
                 )}

@@ -1,14 +1,20 @@
 export interface UserProfile {
+  id?: string;
   height: number; // cm
   weight: number; // kg
   modelImageUrl?: string;
   modelImageBase64?: string;
+  // Style preferences học từ feedback
+  preferredStyles?: string[];
+  preferredColors?: string[];
+  stylePersonality?: string; // "Minimalist" | "Bold" | "Casual" | ...
+  updatedAt?: Date;
 }
 
 export interface ClothingItem {
   id: string;
-  imageUrl: string;
-  imageBase64?: string;
+  imageUrl: string;       // public URL từ Supabase Storage
+  imageBase64?: string;   // chỉ dùng khi upload, không lưu DB
   type: string;
   color: string;
   material: string;
@@ -17,6 +23,7 @@ export interface ClothingItem {
   addedAt: Date;
   tryOnCount: number;
   lastTriedAt?: Date;
+  tags?: string[];        // tags thêm từ AI hoặc user
 }
 
 export interface TryOnSession {
@@ -24,6 +31,36 @@ export interface TryOnSession {
   clothingId: string;
   resultImageUrl: string;
   createdAt: Date;
+}
+
+// Outfit combo được AI gợi ý + user feedback
+export interface OutfitRecord {
+  id: string;
+  itemIds: string[];       // IDs của các ClothingItem
+  occasion: string;
+  weather: string;
+  aiReasoning: string;
+  aiTips: string;
+  aiScore: number;
+  // Feedback từ user → dùng để train AI
+  userRating?: number;     // 1-5 sao
+  userFeedback?: string;   // "Hợp lắm" | "Không hợp màu" | ...
+  worn?: boolean;          // Đã mặc thật chưa
+  createdAt: Date;
+}
+
+// Style profile AI học được từ feedback
+export interface AIStyleProfile {
+  userId: string;
+  totalOutfits: number;
+  avgRating: number;
+  topColors: string[];
+  topStyles: string[];
+  topOccasions: string[];
+  dislikedCombos: string[];   // màu/style không hợp
+  likedCombos: string[];      // màu/style hay dùng
+  personalityTags: string[];  // "Minimalist", "Colorful", ...
+  lastUpdated: Date;
 }
 
 // BMI & body type helper

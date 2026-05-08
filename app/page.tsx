@@ -1,16 +1,17 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { Wand2, Plus, Shirt, Sparkles, ImagePlus, Brain } from "lucide-react";
+import { Wand2, Plus, Shirt, Sparkles, ImagePlus, Brain, User } from "lucide-react";
 import ImageUploader from "@/components/ImageUploader";
 import BodyForm from "@/components/BodyForm";
 import ClothingCard from "@/components/ClothingCard";
 import TryOnResult from "@/components/TryOnResult";
 import GenerateImageModal from "@/components/GenerateImageModal";
 import OutfitSuggestion from "@/components/OutfitSuggestion";
+import AIStyleProfile from "@/components/AIStyleProfile";
 import { ClothingItem } from "@/lib/types";
 
-type Tab = "tryon" | "closet" | "stylist";
+type Tab = "tryon" | "closet" | "stylist" | "profile";
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<Tab>("tryon");
@@ -196,6 +197,17 @@ export default function Home() {
               <Brain size={14} />
               Phối đồ AI
             </button>
+            <button
+              onClick={() => setActiveTab("profile")}
+              className={`flex items-center gap-1.5 rounded-lg px-4 py-1.5 text-sm font-medium transition ${
+                activeTab === "profile"
+                  ? "bg-white text-violet-700 shadow-sm"
+                  : "text-zinc-500 hover:text-zinc-700"
+              }`}
+            >
+              <User size={14} />
+              Style AI
+            </button>
           </div>
         </div>
       </header>
@@ -370,6 +382,18 @@ export default function Home() {
                 }
               }}
             />
+          </div>
+        )}
+        {/* ===== TAB: AI STYLE PROFILE ===== */}
+        {activeTab === "profile" && (
+          <div className="mx-auto max-w-2xl">
+            <div className="mb-6">
+              <h2 className="text-xl font-bold text-zinc-900">🧠 AI Style Profile</h2>
+              <p className="text-sm text-zinc-400 mt-0.5">
+                AI học từ feedback của bạn và tự cải thiện theo thời gian
+              </p>
+            </div>
+            <AIStyleProfile />
           </div>
         )}
       </main>
