@@ -18,9 +18,9 @@ export default function BodyForm({ height, weight, onChange }: BodyFormProps) {
       ? "text-zinc-400"
       : bmi < 18.5
       ? "text-blue-500"
-      : bmi < 25
+      : bmi < 23
       ? "text-green-500"
-      : bmi < 30
+      : bmi < 27.5
       ? "text-yellow-500"
       : "text-red-500";
 

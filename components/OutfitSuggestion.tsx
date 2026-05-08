@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Sparkles, Brain, Star, ChevronDown, ChevronUp, Wand2, MessageSquare } from "lucide-react";
+import { Sparkles, Brain, Star, ChevronDown, ChevronUp, Wand2, MessageSquare, ImagePlus, Loader2 } from "lucide-react";
 import Image from "next/image";
 import { ClothingItem } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -18,6 +18,7 @@ interface OutfitCombo {
   score: number;
   savedId?: string; // ID sau khi lưu vào DB
   rated?: boolean;
+  generatedImage?: string; // base64 ảnh minh họa (tạo khi cần)
 }
 
 interface OutfitSuggestionProps {
@@ -59,6 +60,7 @@ export default function OutfitSuggestion({
   const [feedbackComboId, setFeedbackComboId] = useState<string | null>(null);
   const [hasPersonalization, setHasPersonalization] = useState(false);
   const [profileSummary, setProfileSummary] = useState("");
+  const [generatingImageId, setGeneratingImageId] = useState<string | null>(null);
 
   const handleSuggest = async () => {
     if (closet.length < 2) {
@@ -150,6 +152,29 @@ export default function OutfitSuggestion({
       prev.map((c) => (c.id === combo.id ? { ...c, rated: true } : c))
     );
     setFeedbackComboId(null);
+  };
+
+  // Tạo ảnh minh họa outfit khi user yêu cầu
+  const handleGenerateImage = async (combo: OutfitCombo) => {
+    const comboItems = getComboItems(combo.items);
+    setGeneratingImageId(combo.id);
+    try {
+      const prompt = `${combo.name} outfit: ${comboItems.map(i => `${i.color} ${i.type}`).join(", ")}. ${combo.vibe} style, ${combo.occasion}. Fashion flat lay on white background.`;
+      const res = await fetch("/api/generate-image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt, style: "realistic", aspectRatio: "1:1" }),
+      });
+      const data = await res.json();
+      if (data.imageBase64) {
+        setCombos(prev => prev.map(c =>
+          c.id === combo.id
+            ? { ...c, generatedImage: `data:${data.mimeType};base64,${data.imageBase64}` }
+            : c
+        ));
+      }
+    } catch { /* silent fail */ }
+    finally { setGeneratingImageId(null); }
   };
 
   return (
@@ -404,6 +429,35 @@ export default function OutfitSuggestion({
                         {combo.tips}
                       </p>
                     </div>
+
+                    {/* Ảnh minh họa (tạo khi cần) */}
+                    {combo.generatedImage ? (
+                      <div className="flex flex-col gap-2">
+                        <div className="relative h-56 w-full rounded-xl overflow-hidden border border-zinc-200 bg-zinc-50">
+                          <Image
+                            src={combo.generatedImage}
+                            alt={combo.name}
+                            fill
+                            className="object-contain p-2"
+                          />
+                          <span className="absolute top-2 left-2 rounded-full bg-violet-600 px-2.5 py-1 text-xs font-medium text-white">
+                            ✨ AI minh họa
+                          </span>
+                        </div>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => handleGenerateImage(combo)}
+                        disabled={generatingImageId === combo.id}
+                        className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-violet-300 bg-violet-50 py-2.5 text-sm font-medium text-violet-600 hover:bg-violet-100 disabled:opacity-50 transition"
+                      >
+                        {generatingImageId === combo.id ? (
+                          <><Loader2 size={14} className="animate-spin" /> Đang tạo ảnh minh họa...</>
+                        ) : (
+                          <><ImagePlus size={14} /> Tạo ảnh minh họa outfit</>
+                        )}
+                      </button>
+                    )}
 
                     {/* Try on button */}
                     {comboItems.length > 0 && (
