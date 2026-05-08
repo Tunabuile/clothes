@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { rateOutfit, saveOutfitRecord } from "@/lib/supabase";
+import { checkAndAutoTrain } from "@/lib/autoTrainer";
 
 // Lưu outfit record mới
 export async function POST(req: NextRequest) {
@@ -15,12 +16,20 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// Cập nhật feedback/rating
+// Cập nhật feedback/rating + auto-train
 export async function PATCH(req: NextRequest) {
   try {
     const { outfitId, rating, feedback, worn } = await req.json();
     await rateOutfit(outfitId, rating, feedback, worn);
-    return NextResponse.json({ success: true });
+
+    // Auto-train sau mỗi feedback
+    const trainResult = await checkAndAutoTrain("default");
+
+    return NextResponse.json({
+      success: true,
+      autoTrained: trainResult.trained,
+      trainMessage: trainResult.reason,
+    });
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Lỗi lưu feedback" },

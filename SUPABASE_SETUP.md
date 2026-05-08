@@ -54,6 +54,8 @@ create table ai_style_profiles (
   disliked_combos text[],
   personality_tags text[],
   style_summary text,
+  color_preferences jsonb,
+  outfit_rules text[],
   last_updated timestamptz default now()
 );
 

@@ -153,6 +153,9 @@ export async function saveStyleProfile(profile: {
   disliked_combos: string[];
   liked_combos: string[];
   personality_tags: string[];
+  style_summary?: string;
+  color_preferences?: { loves?: string[]; avoids?: string[]; neutral_heavy?: boolean };
+  outfit_rules?: string[];
 }) {
   const { error } = await db().from("ai_style_profiles").upsert({
     ...profile,

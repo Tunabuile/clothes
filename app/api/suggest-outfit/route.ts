@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { getStyleProfile } from "@/lib/supabase";
-import { buildPersonalizedPrompt } from "@/lib/styleTrainer";
+import { buildDeepPersonalizedPrompt } from "@/lib/autoTrainer";
+import { evaluateColorCombo } from "@/lib/colorTheory";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
@@ -16,9 +17,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Lấy style profile đã học từ feedback của user
+    // Lấy style profile đã học từ feedback
     const styleProfile = await getStyleProfile("default").catch(() => null);
-    const personalizedContext = buildPersonalizedPrompt(styleProfile);
+
+    // Lấy màu của tất cả đồ để phân tích color theory
+    const allColors = clothes.map((c: { color: string }) => c.color).filter(Boolean);
+    const colorEval = evaluateColorCombo(allColors);
+
+    // Build personalized prompt với color theory
+    const personalizedContext = buildDeepPersonalizedPrompt(styleProfile, allColors);
 
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
@@ -32,39 +39,41 @@ export async function POST(req: NextRequest) {
       )
       .join("\n");
 
-    const prompt = `Bạn là một AI stylist thời trang chuyên nghiệp. Hãy phân tích các món đồ và tư duy phối outfit.
+    const prompt = `Bạn là AI stylist thời trang chuyên nghiệp với kiến thức color theory sâu.
 
 DANH SÁCH ĐỒ TRONG TỦ:
 ${clothesList}
+
+PHÂN TÍCH MÀU SẮC (Color Theory):
+Score tổng thể: ${colorEval.score}/100
+Lời khuyên: ${colorEval.advice}
 
 DỊP MẶC: ${occasion || "Hàng ngày"}
 THỜI TIẾT: ${weather || "Bình thường"}
 ${personalizedContext}
 
-Đề xuất 3 combo outfit khác nhau. Trả về JSON (chỉ JSON):
+Đề xuất 3 combo outfit. Trả về JSON (chỉ JSON):
 {
   "combos": [
     {
       "id": "combo_1",
-      "name": "Tên outfit ngắn gọn",
+      "name": "Tên outfit",
       "occasion": "Dịp phù hợp",
-      "vibe": "Cảm giác/phong cách",
+      "vibe": "Phong cách",
       "items": ["item_id_1", "item_id_2"],
-      "reasoning": "Lý do tại sao các món này hợp nhau",
-      "tips": "Mẹo mặc thêm (phụ kiện, giày...)",
-      "score": 8
+      "reasoning": "Lý do phối (màu sắc theo color theory, phong cách)",
+      "tips": "Mẹo mặc thêm",
+      "score": 8,
+      "colorScore": 75
     }
   ]
 }`;
 
     parts.push({ text: prompt });
 
-    // Thêm ảnh thật của từng món đồ để AI nhìn trực tiếp
     for (const cloth of clothes) {
       if (cloth.imageBase64) {
-        parts.push({
-          inlineData: { data: cloth.imageBase64, mimeType: "image/jpeg" },
-        });
+        parts.push({ inlineData: { data: cloth.imageBase64, mimeType: "image/jpeg" } });
       }
     }
 
@@ -82,6 +91,7 @@ ${personalizedContext}
       profileSummary: styleProfile
         ? `AI đã học từ ${styleProfile.total_outfits || 0} outfit của bạn`
         : null,
+      colorAnalysis: colorEval,
     });
   } catch (error) {
     console.error("Suggest outfit error:", error);

@@ -1,12 +1,16 @@
 import { NextResponse } from "next/server";
-import { trainStyleProfile } from "@/lib/styleTrainer";
+import { deepTrainStyleProfile } from "@/lib/autoTrainer";
 import { getStyleProfile } from "@/lib/supabase";
 
 export async function POST() {
   try {
-    const summary = await trainStyleProfile("default");
-    const profile = await getStyleProfile("default");
-    return NextResponse.json({ success: true, summary, profile });
+    const profile = await deepTrainStyleProfile("default");
+    const saved = await getStyleProfile("default");
+    return NextResponse.json({
+      success: true,
+      summary: profile?.style_summary || "Đã cập nhật style profile!",
+      profile: saved,
+    });
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Lỗi train AI" },
