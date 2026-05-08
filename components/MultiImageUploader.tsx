@@ -36,22 +36,29 @@ export default function MultiImageUploader({
     const fileArray = Array.from(files).filter((f) => f.type.startsWith("image/"));
     const remaining = maxImages - images.length;
     const toProcess = fileArray.slice(0, remaining);
+    if (toProcess.length === 0) return;
 
-    toProcess.forEach((file) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const result = e.target?.result as string;
-        const base64 = result.split(",")[1];
-        const newImage: UploadedImage = {
-          id: crypto.randomUUID(),
-          base64,
-          mimeType: file.type,
-          previewUrl: result,
-          name: file.name,
-        };
-        onChange([...images, newImage]);
-      };
-      reader.readAsDataURL(file);
+    // Đọc tất cả files song song rồi add 1 lần
+    const promises = toProcess.map(
+      (file) =>
+        new Promise<UploadedImage>((resolve) => {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const result = e.target?.result as string;
+            resolve({
+              id: crypto.randomUUID(),
+              base64: result.split(",")[1],
+              mimeType: file.type,
+              previewUrl: result,
+              name: file.name,
+            });
+          };
+          reader.readAsDataURL(file);
+        })
+    );
+
+    Promise.all(promises).then((newImages) => {
+      onChange([...images, ...newImages]);
     });
   };
 
