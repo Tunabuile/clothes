@@ -195,47 +195,48 @@ function IdeaCard({ idea, expanded, onToggle }: {
         expanded ? "border-green-300 shadow-md" : "border-zinc-200"
       )}
     >
-      {/* Ảnh minh họa */}
-      {idea.image && (
-        <div className="relative h-36 w-full overflow-hidden bg-zinc-100">
-          <Image
-            src={idea.image}
-            alt={idea.title}
-            fill
-            className="object-cover"
-            unoptimized
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
-          <span className={cn(
-            "absolute top-2 right-2 rounded-full border px-2 py-0.5 text-xs font-medium backdrop-blur-sm",
-            CATEGORY_COLORS[idea.category] || "bg-zinc-100 text-zinc-600 border-zinc-200"
-          )}>{idea.category}</span>
-        </div>
-      )}
+      {/* Card row: ảnh trái + chữ phải */}
+      <div className="flex cursor-pointer" onClick={onToggle}>
+        {/* Ảnh bên trái */}
+        {idea.image && (
+          <div className="relative w-24 h-24 shrink-0 bg-zinc-100">
+            <Image
+              src={idea.image}
+              alt={idea.title}
+              fill
+              className="object-cover"
+              unoptimized
+            />
+          </div>
+        )}
 
-      {/* Content */}
-      <div className="p-4 cursor-pointer" onClick={onToggle}>
-        {!idea.image && (
+        {/* Chữ bên phải */}
+        <div className="flex-1 p-3 min-w-0">
           <div className="flex items-start justify-between gap-2 mb-1">
-            <span className={cn("shrink-0 rounded-full border px-2 py-0.5 text-xs font-medium",
+            <p className="font-semibold text-zinc-900 text-sm leading-snug line-clamp-1">
+              {idea.title}
+            </p>
+            <span className={cn(
+              "shrink-0 rounded-full border px-2 py-0.5 text-xs font-medium",
               CATEGORY_COLORS[idea.category] || "bg-zinc-100 text-zinc-600 border-zinc-200"
             )}>{idea.category}</span>
           </div>
-        )}
-        <p className="font-semibold text-zinc-900 text-sm leading-snug mb-1">{idea.title}</p>
-        <p className="text-xs text-zinc-500 line-clamp-2 mb-3">{idea.description}</p>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1">
-            <Wrench size={11} className="text-zinc-400" />
-            <span className={cn("text-xs font-medium", DIFFICULTY_COLORS[idea.difficulty] || "text-zinc-500")}>
-              {idea.difficulty}
-            </span>
+
+          <p className="text-xs text-zinc-500 line-clamp-2 mb-2">{idea.description}</p>
+
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1">
+              <Wrench size={11} className="text-zinc-400" />
+              <span className={cn("text-xs font-medium", DIFFICULTY_COLORS[idea.difficulty] || "text-zinc-500")}>
+                {idea.difficulty}
+              </span>
+            </div>
+            <div className="flex items-center gap-1">
+              <Clock size={11} className="text-zinc-400" />
+              <span className="text-xs text-zinc-400">{idea.time}</span>
+            </div>
+            <span className="ml-auto text-xs text-zinc-400">❤️ {idea.likes}</span>
           </div>
-          <div className="flex items-center gap-1">
-            <Clock size={11} className="text-zinc-400" />
-            <span className="text-xs text-zinc-400">{idea.time}</span>
-          </div>
-          <span className="ml-auto text-xs text-zinc-400">❤️ {idea.likes}</span>
         </div>
       </div>
 
@@ -261,7 +262,6 @@ function IdeaCard({ idea, expanded, onToggle }: {
             ))}
           </div>
 
-          {/* Tutorial link */}
           {idea.tutorialUrl && (
             <a
               href={idea.tutorialUrl}
@@ -277,7 +277,7 @@ function IdeaCard({ idea, expanded, onToggle }: {
         </div>
       )}
 
-      <div className="flex justify-center pb-2 cursor-pointer" onClick={onToggle}>
+      <div className="flex justify-center pb-1.5 cursor-pointer" onClick={onToggle}>
         {expanded ? <ChevronUp size={13} className="text-zinc-300" /> : <ChevronDown size={13} className="text-zinc-300" />}
       </div>
     </div>
