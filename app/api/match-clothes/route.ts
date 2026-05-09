@@ -101,7 +101,8 @@ Viết reasoning và tips cho từng combo. Trả về JSON (chỉ JSON):
     if (!parsed) throw new Error("AI không trả về kết quả hợp lệ");
 
     // Gán đúng items IDs từ CLIP vào từng combo
-    const finalCombos = parsed.combos.map(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const finalCombos = (parsed.combos as any[]).map(
       (combo: { id: string; name: string; occasion: string; vibe: string; items: string[]; reasoning: string; tips: string; score: number; clipScore: number }, i: number) => ({
         ...combo,
         items: bestComboIds[i] || combo.items,
