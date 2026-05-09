@@ -35,9 +35,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Dùng Gemini để viết reasoning cho từng combo CLIP đã chọn
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-
     const clothMap = Object.fromEntries(
       clothes.map((c: { id: string; type: string; color: string; material: string; style: string }) => [c.id, c])
     );
