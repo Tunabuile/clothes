@@ -13,6 +13,7 @@ import AIStyleProfile from "@/components/AIStyleProfile";
 import CLIPMatcher from "@/components/CLIPMatcher";
 import AutoLearning from "@/components/AutoLearning";
 import LabelScanner from "@/components/LabelScanner";
+import RecycleHub from "@/components/RecycleHub";
 import { ClothingItem } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -538,14 +539,14 @@ export default function Home() {
         )}
         {/* ===== TAB: TÁI CHẾ ===== */}
         {activeTab === "recycle" && (
-          <div className="mx-auto max-w-2xl">
+          <div>
             <div className="mb-6">
-              <h2 className="text-xl font-bold text-zinc-900">♻️ Scan Tem & Tái Chế</h2>
+              <h2 className="text-xl font-bold text-zinc-900">♻️ Tái Chế & Upcycle</h2>
               <p className="text-sm text-zinc-400 mt-0.5">
-                Chụp tem thành phần áo → AI đọc chất liệu → gợi ý tái chế thông minh
+                Browse ý tưởng tái chế hoặc chụp sản phẩm để AI gợi ý riêng cho bạn
               </p>
             </div>
-            <LabelScanner />
+            <RecycleHub />
           </div>
         )}
 
