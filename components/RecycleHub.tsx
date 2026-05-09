@@ -199,7 +199,7 @@ function IdeaCard({ idea, expanded, onToggle }: {
       <div className="flex cursor-pointer" onClick={onToggle}>
         {/* Ảnh bên trái */}
         {idea.image && (
-          <div className="relative w-24 h-24 shrink-0 bg-zinc-100">
+          <div className="relative w-36 h-36 shrink-0 bg-zinc-100">
             <Image
               src={idea.image}
               alt={idea.title}
@@ -211,18 +211,19 @@ function IdeaCard({ idea, expanded, onToggle }: {
         )}
 
         {/* Chữ bên phải */}
-        <div className="flex-1 p-3 min-w-0">
-          <div className="flex items-start justify-between gap-2 mb-1">
-            <p className="font-semibold text-zinc-900 text-sm leading-snug line-clamp-1">
-              {idea.title}
-            </p>
-            <span className={cn(
-              "shrink-0 rounded-full border px-2 py-0.5 text-xs font-medium",
-              CATEGORY_COLORS[idea.category] || "bg-zinc-100 text-zinc-600 border-zinc-200"
-            )}>{idea.category}</span>
+        <div className="flex-1 p-4 min-w-0 flex flex-col justify-between">
+          <div>
+            <div className="flex items-start justify-between gap-2 mb-1.5">
+              <p className="font-semibold text-zinc-900 text-sm leading-snug">
+                {idea.title}
+              </p>
+              <span className={cn(
+                "shrink-0 rounded-full border px-2 py-0.5 text-xs font-medium",
+                CATEGORY_COLORS[idea.category] || "bg-zinc-100 text-zinc-600 border-zinc-200"
+              )}>{idea.category}</span>
+            </div>
+            <p className="text-xs text-zinc-500 line-clamp-3 mb-3">{idea.description}</p>
           </div>
-
-          <p className="text-xs text-zinc-500 line-clamp-2 mb-2">{idea.description}</p>
 
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1">
