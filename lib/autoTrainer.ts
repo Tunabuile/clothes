@@ -14,6 +14,39 @@ function extractJSON(text: string): Record<string, unknown> {
   return JSON.parse(jsonMatch[0]);
 }
 
+type DeepStyleProfile = {
+  total_outfits?: unknown;
+  avg_rating?: unknown;
+  top_colors?: unknown;
+  top_styles?: unknown;
+  top_occasions?: unknown;
+  disliked_combos?: unknown;
+  liked_combos?: unknown;
+  personality_tags?: unknown;
+  style_summary?: unknown;
+  color_preferences?: unknown;
+  outfit_rules?: unknown;
+};
+
+function asNumber(value: unknown, fallback = 0): number {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string") {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : fallback;
+  }
+  return fallback;
+}
+
+function asStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((v): v is string => typeof v === "string");
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return value as Record<string, unknown>;
+}
+
 const AUTO_TRAIN_THRESHOLD = 3; // train sau mỗi 3 feedback mới
 
 /**
@@ -106,21 +139,26 @@ Phân tích và trả về JSON (chỉ JSON):
 }`;
 
   const text = await generateText(prompt);
-  const profile = extractJSON(text) as any;
+  const profile = extractJSON(text) as DeepStyleProfile;
+  const colorPrefs = asRecord(profile.color_preferences);
 
   await saveStyleProfile({
     user_id: userId,
-    total_outfits: Number(profile.total_outfits || 0),
-    avg_rating: Number(profile.avg_rating || 0),
-    top_colors: Array.isArray(profile.top_colors) ? profile.top_colors : [],
-    top_styles: Array.isArray(profile.top_styles) ? profile.top_styles : [],
-    top_occasions: Array.isArray(profile.top_occasions) ? profile.top_occasions : [],
-    disliked_combos: Array.isArray(profile.disliked_combos) ? profile.disliked_combos : [],
-    liked_combos: Array.isArray(profile.liked_combos) ? profile.liked_combos : [],
-    personality_tags: Array.isArray(profile.personality_tags) ? profile.personality_tags : [],
-    style_summary: String(profile.style_summary || ""),
-    color_preferences: profile.color_preferences || {},
-    outfit_rules: Array.isArray(profile.outfit_rules) ? profile.outfit_rules : [],
+    total_outfits: asNumber(profile.total_outfits, 0),
+    avg_rating: asNumber(profile.avg_rating, 0),
+    top_colors: asStringArray(profile.top_colors),
+    top_styles: asStringArray(profile.top_styles),
+    top_occasions: asStringArray(profile.top_occasions),
+    disliked_combos: asStringArray(profile.disliked_combos),
+    liked_combos: asStringArray(profile.liked_combos),
+    personality_tags: asStringArray(profile.personality_tags),
+    style_summary: typeof profile.style_summary === "string" ? profile.style_summary : String(profile.style_summary || ""),
+    color_preferences: {
+      loves: asStringArray(colorPrefs.loves),
+      avoids: asStringArray(colorPrefs.avoids),
+      neutral_heavy: typeof colorPrefs.neutral_heavy === "boolean" ? colorPrefs.neutral_heavy : undefined,
+    },
+    outfit_rules: asStringArray(profile.outfit_rules),
   });
 
   return profile;
