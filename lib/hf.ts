@@ -15,58 +15,38 @@ const HF_HEADERS = {
 // Dùng Groq (free, nhanh) nếu có key, fallback sang HF
 
 export async function generateText(prompt: string): Promise<string> {
-  // Thử Groq trước (nhanh hơn, free)
-  if (GROQ_API_KEY) {
-    try {
-      const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${GROQ_API_KEY}`,
-        },
-        body: JSON.stringify({
-          model: "llama3-8b-8192",
-          messages: [
-            { role: "system", content: "You are a helpful fashion assistant. Always respond with valid JSON when asked." },
-            { role: "user", content: prompt },
-          ],
-          max_tokens: 1024,
-          temperature: 0.7,
-        }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        return data.choices?.[0]?.message?.content || "";
-      }
-    } catch { /* fallback to HF */ }
+  if (!GROQ_API_KEY) {
+    throw new Error("Thiếu GROQ_API_KEY trong .env.local");
   }
 
-  // Fallback: HF zephyr
-  const res = await fetch(
-    "https://api-inference.huggingface.co/models/HuggingFaceH4/zephyr-7b-beta",
-    {
-      method: "POST",
-      headers: HF_HEADERS,
-      body: JSON.stringify({
-        inputs: `<|system|>You are a helpful fashion assistant.</s><|user|>${prompt}</s><|assistant|>`,
-        parameters: {
-          max_new_tokens: 1024,
-          temperature: 0.7,
-          return_full_text: false,
-          stop: ["</s>", "<|user|>"],
+  const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${GROQ_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: "llama-3.1-8b-instant",
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are a helpful fashion assistant. Always respond with valid JSON when asked.",
         },
-      }),
-    }
-  );
+        { role: "user", content: prompt },
+      ],
+      max_tokens: 1024,
+      temperature: 0.7,
+    }),
+  });
 
   if (!res.ok) {
     const err = await res.text();
-    throw new Error(`HF Text error ${res.status}: ${err.slice(0, 200)}`);
+    throw new Error(`Groq API error ${res.status}: ${err.slice(0, 300)}`);
   }
 
   const data = await res.json();
-  if (Array.isArray(data)) return data[0]?.generated_text || "";
-  return data?.generated_text || "";
+  return data.choices?.[0]?.message?.content || "";
 }
 
 // ─── IMAGE CAPTIONING (BLIP) ─────────────────────────────────
