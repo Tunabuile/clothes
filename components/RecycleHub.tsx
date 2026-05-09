@@ -1,286 +1,119 @@
 "use client";
 
 import { useState } from "react";
-import {
-  Recycle, Clock, Wrench, ChevronDown, ChevronUp,
-  Loader2, Search, Sparkles, Camera, Filter, ExternalLink, Leaf
-} from "lucide-react";
+import { Recycle, Clock, Wrench, ChevronDown, ChevronUp, Loader2, Search, Sparkles, Camera, Filter, ExternalLink, Leaf } from "lucide-react";
 import ImageUploader from "./ImageUploader";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 
 interface RecycleIdea {
-  id: string;
-  title: string;
-  category: string;
-  difficulty: string;
-  time: string;
-  description: string;
-  materials_needed: string[];
-  clothingType: string[];
-  tags: string[];
-  likes: number;
-  image?: string;
-  tutorialUrl?: string;
-  tutorialLabel?: string;
+  id: string; title: string; category: string; difficulty: string; time: string;
+  description: string; materials_needed: string[]; clothingType: string[];
+  tags: string[]; likes: number; image?: string; tutorialUrl?: string; tutorialLabel?: string;
 }
 
-const FORUM_IDEAS: RecycleIdea[] = [
-  {
-    id: "1", title: "Túi tote từ áo thun cũ", category: "Tái chế",
-    difficulty: "Rất dễ", time: "20 phút",
-    description: "Cắt tay áo, khâu đáy lại là xong một chiếc túi tote xinh xắn. Không cần máy may.",
-    materials_needed: ["Kéo", "Kim chỉ hoặc keo vải"],
-    clothingType: ["T-shirt", "Áo thun"], tags: ["túi", "không cần may", "nhanh"], likes: 234,
-    image: "https://images.unsplash.com/photo-1622560480605-d83c853bc5c3?w=400&q=80",
-    tutorialUrl: "https://www.youtube.com/results?search_query=t-shirt+tote+bag+no+sew+diy",
-    tutorialLabel: "Xem hướng dẫn YouTube",
-  },
-  {
-    id: "3", title: "Crop top từ áo rộng", category: "Upcycle",
-    difficulty: "Dễ", time: "15 phút",
-    description: "Cắt phần dưới áo oversized, viền lại bằng kéo zigzag hoặc để raw hem cho phong cách.",
-    materials_needed: ["Kéo", "Thước", "Phấn may"],
-    clothingType: ["Áo thun", "Áo hoodie", "Áo len"], tags: ["thời trang", "crop", "trendy"], likes: 312,
-    image: "https://images.unsplash.com/photo-1618354691373-d851c5c3a990?w=400&q=80",
-    tutorialUrl: "https://www.youtube.com/results?search_query=diy+crop+top+from+oversized+shirt",
-    tutorialLabel: "Xem hướng dẫn YouTube",
-  },
-  {
-    id: "4", title: "Gối ôm từ quần jeans cũ", category: "Tái chế",
-    difficulty: "Trung bình", time: "45 phút",
-    description: "Dùng ống quần jeans, khâu một đầu, nhồi bông vào, khâu đầu còn lại. Ra gối hình trụ độc đáo.",
-    materials_needed: ["Máy may hoặc kim chỉ", "Bông nhồi", "Kéo"],
-    clothingType: ["Quần jeans", "Quần denim"], tags: ["nội thất", "gối", "jeans"], likes: 156,
-    image: "https://images.unsplash.com/photo-1584100936595-c0654b55a2e2?w=400&q=80",
-    tutorialUrl: "https://www.pinterest.com/search/pins/?q=denim+jeans+pillow+diy",
-    tutorialLabel: "Xem ý tưởng Pinterest",
-  },
-  {
-    id: "6", title: "Chậu cây từ quần jeans", category: "Tái chế",
-    difficulty: "Dễ", time: "30 phút",
-    description: "Cắt ống quần, khâu đáy, lót túi nilon bên trong, đổ đất trồng cây. Decor cực chất.",
-    materials_needed: ["Kéo", "Kim chỉ", "Túi nilon", "Đất trồng"],
-    clothingType: ["Quần jeans", "Quần vải"], tags: ["cây cảnh", "decor", "jeans"], likes: 201,
-    image: "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=400&q=80",
-    tutorialUrl: "https://www.pinterest.com/search/pins/?q=denim+jeans+planter+diy",
-    tutorialLabel: "Xem ý tưởng Pinterest",
-  },
-  {
-    id: "7", title: "Ví nhỏ từ túi quần jeans", category: "Upcycle",
-    difficulty: "Trung bình", time: "40 phút",
-    description: "Tháo túi quần jeans ra, thêm khóa kéo hoặc nút bấm, thành ví đựng tiền lẻ siêu cute.",
-    materials_needed: ["Kéo", "Khóa kéo", "Kim chỉ"],
-    clothingType: ["Quần jeans", "Quần kaki"], tags: ["ví", "phụ kiện", "jeans"], likes: 143,
-    image: "https://images.unsplash.com/photo-1473188588951-666fce8e7c68?w=400&q=80",
-    tutorialUrl: "https://www.youtube.com/results?search_query=diy+wallet+from+jeans+pocket",
-    tutorialLabel: "Xem hướng dẫn YouTube",
-  },
-  {
-    id: "8", title: "Thảm chùi chân từ áo cũ", category: "Tái chế",
-    difficulty: "Trung bình", time: "60 phút",
-    description: "Cắt nhiều áo cũ thành dải, đan hoặc bện lại thành thảm tròn. Bền và đẹp.",
-    materials_needed: ["Kéo", "Móc đan hoặc tay"],
-    clothingType: ["Áo thun", "Áo len", "Nhiều loại"], tags: ["thảm", "đan", "nội thất"], likes: 167,
-    image: "https://images.unsplash.com/photo-1600166898405-da9535204843?w=400&q=80",
-    tutorialUrl: "https://www.youtube.com/results?search_query=braided+rug+from+old+clothes+diy",
-    tutorialLabel: "Xem hướng dẫn YouTube",
-  },
-  {
-    id: "9", title: "Băng đô từ áo thun", category: "Upcycle",
-    difficulty: "Rất dễ", time: "5 phút",
-    description: "Cắt một dải ngang từ thân áo thun, độ rộng 5-8cm. Kéo nhẹ để cuộn lại. Xong ngay.",
-    materials_needed: ["Kéo"],
-    clothingType: ["Áo thun", "Vải thun"], tags: ["phụ kiện", "tóc", "nhanh"], likes: 345,
-    image: "https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?w=400&q=80",
-    tutorialUrl: "https://www.youtube.com/results?search_query=diy+headband+from+tshirt+no+sew",
-    tutorialLabel: "Xem hướng dẫn YouTube",
-  },
-  {
-    id: "10", title: "Bao gối từ áo sơ mi", category: "Tái chế",
-    difficulty: "Dễ", time: "25 phút",
-    description: "Áo sơ mi có sẵn hàng cúc — nhét gối vào, cài cúc lại. Không cần khâu gì thêm.",
-    materials_needed: ["Gối"],
-    clothingType: ["Áo sơ mi", "Áo flannel"], tags: ["gối", "phòng ngủ", "không cần may"], likes: 289,
-    image: "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=400&q=80",
-    tutorialUrl: "https://www.pinterest.com/search/pins/?q=shirt+pillowcase+diy+no+sew",
-    tutorialLabel: "Xem ý tưởng Pinterest",
-  },
-  {
-    id: "11", title: "Giỏ đựng đồ từ áo len", category: "Tái chế",
-    difficulty: "Trung bình", time: "50 phút",
-    description: "Cắt áo len thành dải, đan thành giỏ hình tròn. Dùng đựng đồ chơi, sách, hoặc cây cảnh.",
-    materials_needed: ["Kéo", "Móc đan"],
-    clothingType: ["Áo len", "Áo sweater"], tags: ["giỏ", "đan", "len"], likes: 122,
-    image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&q=80",
-    tutorialUrl: "https://www.youtube.com/results?search_query=diy+basket+from+old+sweater+knit",
-    tutorialLabel: "Xem hướng dẫn YouTube",
-  },
-  {
-    id: "13", title: "Áo khoác denim từ quần jeans", category: "Upcycle",
-    difficulty: "Khó", time: "120 phút",
-    description: "Tháo đường chỉ quần jeans, cắt và may lại thành áo khoác denim độc đáo. Cần máy may.",
-    materials_needed: ["Máy may", "Kéo", "Chỉ denim", "Thước"],
-    clothingType: ["Quần jeans"], tags: ["áo khoác", "denim", "thời trang"], likes: 198,
-    image: "https://images.unsplash.com/photo-1551537482-f2075a1d41f2?w=400&q=80",
-    tutorialUrl: "https://www.youtube.com/results?search_query=diy+denim+jacket+from+jeans+upcycle",
-    tutorialLabel: "Xem hướng dẫn YouTube",
-  },
-  {
-    id: "14", title: "Quần short từ quần dài", category: "Upcycle",
-    difficulty: "Dễ", time: "20 phút",
-    description: "Cắt quần dài thành quần short, viền gấu bằng kéo zigzag hoặc để raw hem. Nhanh và trendy.",
-    materials_needed: ["Kéo", "Thước", "Phấn may"],
-    clothingType: ["Quần jeans", "Quần kaki", "Quần vải"], tags: ["quần short", "mùa hè", "nhanh"], likes: 267,
-    image: "https://images.unsplash.com/photo-1591195853828-11db59a44f43?w=400&q=80",
-    tutorialUrl: "https://www.youtube.com/results?search_query=diy+cut+off+shorts+from+jeans+tutorial",
-    tutorialLabel: "Xem hướng dẫn YouTube",
-  },
-  {
-    id: "15", title: "Túi dây rút từ áo cũ", category: "Tái chế",
-    difficulty: "Dễ", time: "30 phút",
-    description: "Khâu miệng áo lại, thêm dây rút ở cổ áo. Thành túi đựng giày hoặc đồ gym tiện lợi.",
-    materials_needed: ["Kim chỉ", "Dây rút", "Kéo"],
-    clothingType: ["Áo thun", "Áo hoodie"], tags: ["túi", "gym", "tiện lợi"], likes: 134,
-    image: "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400&q=80",
-    tutorialUrl: "https://www.pinterest.com/search/pins/?q=tshirt+drawstring+bag+diy+tutorial",
-    tutorialLabel: "Xem ý tưởng Pinterest",
-  },
-];
-  {
-    id: "3", title: "Crop top từ áo rộng", category: "Upcycle",
-    difficulty: "Dễ", time: "15 phút",
-    description: "Cắt phần dưới áo oversized, viền lại bằng kéo zigzag hoặc để raw hem cho phong cách.",
-    materials_needed: ["Kéo", "Thước", "Phấn may"],
-    clothingType: ["Áo thun", "Áo hoodie", "Áo len"], tags: ["thời trang", "crop", "trendy"], likes: 312,
-    image: "https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?w=400&q=80",
-    tutorialUrl: "https://www.youtube.com/results?search_query=diy+crop+top+from+oversized+shirt",
-    tutorialLabel: "Xem hướng dẫn YouTube",
-  },
-  {
-    id: "4", title: "Gối ôm từ quần jeans cũ", category: "Tái chế",
-    difficulty: "Trung bình", time: "45 phút",
-    description: "Dùng ống quần jeans, khâu một đầu, nhồi bông vào, khâu đầu còn lại. Ra gối hình trụ độc đáo.",
-    materials_needed: ["Máy may hoặc kim chỉ", "Bông nhồi", "Kéo"],
-    clothingType: ["Quần jeans", "Quần denim"], tags: ["nội thất", "gối", "jeans"], likes: 156,
-    image: "https://images.unsplash.com/photo-1567016432779-094069958ea5?w=400&q=80",
-    tutorialUrl: "https://www.pinterest.com/search/pins/?q=denim+jeans+pillow+diy",
-    tutorialLabel: "Xem ý tưởng Pinterest",
-  },
-  {
-    id: "6", title: "Chậu cây từ quần jeans", category: "Tái chế",
-    difficulty: "Dễ", time: "30 phút",
-    description: "Cắt ống quần, khâu đáy, lót túi nilon bên trong, đổ đất trồng cây. Decor cực chất.",
-    materials_needed: ["Kéo", "Kim chỉ", "Túi nilon", "Đất trồng"],
-    clothingType: ["Quần jeans", "Quần vải"], tags: ["cây cảnh", "decor", "jeans"], likes: 201,
-    image: "https://images.unsplash.com/photo-1485955900006-10f4d324d411?w=400&q=80",
-    tutorialUrl: "https://www.pinterest.com/search/pins/?q=denim+jeans+planter+diy",
-    tutorialLabel: "Xem ý tưởng Pinterest",
-  },
-  {
-    id: "7", title: "Ví nhỏ từ túi quần jeans", category: "Upcycle",
-    difficulty: "Trung bình", time: "40 phút",
-    description: "Tháo túi quần jeans ra, thêm khóa kéo hoặc nút bấm, thành ví đựng tiền lẻ siêu cute.",
-    materials_needed: ["Kéo", "Khóa kéo", "Kim chỉ"],
-    clothingType: ["Quần jeans", "Quần kaki"], tags: ["ví", "phụ kiện", "jeans"], likes: 143,
-    image: "https://images.unsplash.com/photo-1627123424574-724758594e93?w=400&q=80",
-    tutorialUrl: "https://www.youtube.com/results?search_query=diy+wallet+from+jeans+pocket",
-    tutorialLabel: "Xem hướng dẫn YouTube",
-  },
-  {
-    id: "8", title: "Thảm chùi chân từ áo cũ", category: "Tái chế",
-    difficulty: "Trung bình", time: "60 phút",
-    description: "Cắt nhiều áo cũ thành dải, đan hoặc bện lại thành thảm tròn. Bền và đẹp.",
-    materials_needed: ["Kéo", "Móc đan hoặc tay"],
-    clothingType: ["Áo thun", "Áo len", "Nhiều loại"], tags: ["thảm", "đan", "nội thất"], likes: 167,
-    image: "https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=400&q=80",
-    tutorialUrl: "https://www.youtube.com/results?search_query=braided+rug+from+old+clothes+diy",
-    tutorialLabel: "Xem hướng dẫn YouTube",
-  },
-  {
-    id: "9", title: "Băng đô từ áo thun", category: "Upcycle",
-    difficulty: "Rất dễ", time: "5 phút",
-    description: "Cắt một dải ngang từ thân áo thun, độ rộng 5-8cm. Kéo nhẹ để cuộn lại. Xong ngay.",
-    materials_needed: ["Kéo"],
-    clothingType: ["Áo thun", "Vải thun"], tags: ["phụ kiện", "tóc", "nhanh"], likes: 345,
-    image: "https://images.unsplash.com/photo-1620799140408-edc6dcb6d633?w=400&q=80",
-    tutorialUrl: "https://www.youtube.com/results?search_query=diy+headband+from+tshirt+no+sew",
-    tutorialLabel: "Xem hướng dẫn YouTube",
-  },
-  {
-    id: "10", title: "Bao gối từ áo sơ mi", category: "Tái chế",
-    difficulty: "Dễ", time: "25 phút",
-    description: "Áo sơ mi có sẵn hàng cúc — nhét gối vào, cài cúc lại. Không cần khâu gì thêm.",
-    materials_needed: ["Gối"],
-    clothingType: ["Áo sơ mi", "Áo flannel"], tags: ["gối", "phòng ngủ", "không cần may"], likes: 289,
-    image: "https://images.unsplash.com/photo-1584100936595-c0654b55a2e2?w=400&q=80",
-    tutorialUrl: "https://www.pinterest.com/search/pins/?q=shirt+pillowcase+diy+no+sew",
-    tutorialLabel: "Xem ý tưởng Pinterest",
-  },
-  {
-    id: "11", title: "Giỏ đựng đồ từ áo len", category: "Tái chế",
-    difficulty: "Trung bình", time: "50 phút",
-    description: "Cắt áo len thành dải, đan thành giỏ hình tròn. Dùng đựng đồ chơi, sách, hoặc cây cảnh.",
-    materials_needed: ["Kéo", "Móc đan"],
-    clothingType: ["Áo len", "Áo sweater"], tags: ["giỏ", "đan", "len"], likes: 122,
-    image: "https://images.unsplash.com/photo-1595231776515-ddffb1f4eb73?w=400&q=80",
-    tutorialUrl: "https://www.youtube.com/results?search_query=diy+basket+from+old+sweater+knit",
-    tutorialLabel: "Xem hướng dẫn YouTube",
-  },
-  {
-    id: "13", title: "Áo khoác từ quần jeans cũ", category: "Upcycle",
-    difficulty: "Khó", time: "120 phút",
-    description: "Tháo đường chỉ quần jeans, cắt và may lại thành áo khoác denim độc đáo. Cần máy may.",
-    materials_needed: ["Máy may", "Kéo", "Chỉ denim", "Thước"],
-    clothingType: ["Quần jeans"], tags: ["áo khoác", "denim", "thời trang"], likes: 198,
-    image: "https://images.unsplash.com/photo-1551537482-f2075a1d41f2?w=400&q=80",
-    tutorialUrl: "https://www.youtube.com/results?search_query=diy+denim+jacket+from+jeans+upcycle",
-    tutorialLabel: "Xem hướng dẫn YouTube",
-  },
-  {
-    id: "14", title: "Quần short từ quần dài", category: "Upcycle",
-    difficulty: "Dễ", time: "20 phút",
-    description: "Cắt quần dài thành quần short, viền gấu bằng kéo zigzag hoặc để raw hem. Nhanh và trendy.",
-    materials_needed: ["Kéo", "Thước", "Phấn may"],
-    clothingType: ["Quần jeans", "Quần kaki", "Quần vải"], tags: ["quần short", "mùa hè", "nhanh"], likes: 267,
-    image: "https://images.unsplash.com/photo-1591195853828-11db59a44f43?w=400&q=80",
-    tutorialUrl: "https://www.youtube.com/results?search_query=diy+cut+off+shorts+from+jeans+tutorial",
-    tutorialLabel: "Xem hướng dẫn YouTube",
-  },
-  {
-    id: "15", title: "Túi dây rút từ áo cũ", category: "Tái chế",
-    difficulty: "Dễ", time: "30 phút",
-    description: "Khâu miệng áo lại, thêm dây rút ở cổ áo. Thành túi đựng giày hoặc đồ gym tiện lợi.",
-    materials_needed: ["Kim chỉ", "Dây rút", "Kéo"],
-    clothingType: ["Áo thun", "Áo hoodie"], tags: ["túi", "gym", "tiện lợi"], likes: 134,
-    image: "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400&q=80",
-    tutorialUrl: "https://www.pinterest.com/search/pins/?q=tshirt+drawstring+bag+diy+tutorial",
-    tutorialLabel: "Xem ý tưởng Pinterest",
-  },
+const IDEAS: RecycleIdea[] = [
+  { id:"1", title:"Túi tote từ áo thun cũ", category:"Tái chế", difficulty:"Rất dễ", time:"20 phút",
+    description:"Cắt tay áo, khâu đáy lại là xong một chiếc túi tote xinh xắn. Không cần máy may.",
+    materials_needed:["Kéo","Kim chỉ hoặc keo vải"], clothingType:["T-shirt","Áo thun"],
+    tags:["túi","không cần may","nhanh"], likes:234,
+    image:"https://images.unsplash.com/photo-1622560480605-d83c853bc5c3?w=400&q=80",
+    tutorialUrl:"https://www.youtube.com/results?search_query=t-shirt+tote+bag+no+sew+diy",
+    tutorialLabel:"Xem hướng dẫn YouTube" },
+  { id:"3", title:"Crop top từ áo rộng", category:"Upcycle", difficulty:"Dễ", time:"15 phút",
+    description:"Cắt phần dưới áo oversized, viền lại bằng kéo zigzag hoặc để raw hem cho phong cách.",
+    materials_needed:["Kéo","Thước","Phấn may"], clothingType:["Áo thun","Áo hoodie"],
+    tags:["thời trang","crop","trendy"], likes:312,
+    image:"https://images.unsplash.com/photo-1618354691373-d851c5c3a990?w=400&q=80",
+    tutorialUrl:"https://www.youtube.com/results?search_query=diy+crop+top+from+oversized+shirt",
+    tutorialLabel:"Xem hướng dẫn YouTube" },
+  { id:"4", title:"Gối ôm từ quần jeans cũ", category:"Tái chế", difficulty:"Trung bình", time:"45 phút",
+    description:"Dùng ống quần jeans, khâu một đầu, nhồi bông vào, khâu đầu còn lại. Ra gối hình trụ độc đáo.",
+    materials_needed:["Máy may hoặc kim chỉ","Bông nhồi","Kéo"], clothingType:["Quần jeans"],
+    tags:["nội thất","gối","jeans"], likes:156,
+    image:"https://images.unsplash.com/photo-1584100936595-c0654b55a2e2?w=400&q=80",
+    tutorialUrl:"https://www.pinterest.com/search/pins/?q=denim+jeans+pillow+diy",
+    tutorialLabel:"Xem ý tưởng Pinterest" },
+  { id:"6", title:"Chậu cây từ quần jeans", category:"Tái chế", difficulty:"Dễ", time:"30 phút",
+    description:"Cắt ống quần, khâu đáy, lót túi nilon bên trong, đổ đất trồng cây. Decor cực chất.",
+    materials_needed:["Kéo","Kim chỉ","Túi nilon","Đất trồng"], clothingType:["Quần jeans"],
+    tags:["cây cảnh","decor","jeans"], likes:201,
+    image:"https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=400&q=80",
+    tutorialUrl:"https://www.pinterest.com/search/pins/?q=denim+jeans+planter+diy",
+    tutorialLabel:"Xem ý tưởng Pinterest" },
+  { id:"7", title:"Ví nhỏ từ túi quần jeans", category:"Upcycle", difficulty:"Trung bình", time:"40 phút",
+    description:"Tháo túi quần jeans ra, thêm khóa kéo hoặc nút bấm, thành ví đựng tiền lẻ siêu cute.",
+    materials_needed:["Kéo","Khóa kéo","Kim chỉ"], clothingType:["Quần jeans"],
+    tags:["ví","phụ kiện","jeans"], likes:143,
+    image:"https://images.unsplash.com/photo-1473188588951-666fce8e7c68?w=400&q=80",
+    tutorialUrl:"https://www.youtube.com/results?search_query=diy+wallet+from+jeans+pocket",
+    tutorialLabel:"Xem hướng dẫn YouTube" },
+  { id:"8", title:"Thảm chùi chân từ áo cũ", category:"Tái chế", difficulty:"Trung bình", time:"60 phút",
+    description:"Cắt nhiều áo cũ thành dải, đan hoặc bện lại thành thảm tròn. Bền và đẹp.",
+    materials_needed:["Kéo","Móc đan hoặc tay"], clothingType:["Áo thun","Áo len"],
+    tags:["thảm","đan","nội thất"], likes:167,
+    image:"https://images.unsplash.com/photo-1600166898405-da9535204843?w=400&q=80",
+    tutorialUrl:"https://www.youtube.com/results?search_query=braided+rug+from+old+clothes+diy",
+    tutorialLabel:"Xem hướng dẫn YouTube" },
+  { id:"9", title:"Băng đô từ áo thun", category:"Upcycle", difficulty:"Rất dễ", time:"5 phút",
+    description:"Cắt một dải ngang từ thân áo thun, độ rộng 5-8cm. Kéo nhẹ để cuộn lại. Xong ngay.",
+    materials_needed:["Kéo"], clothingType:["Áo thun"],
+    tags:["phụ kiện","tóc","nhanh"], likes:345,
+    image:"https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?w=400&q=80",
+    tutorialUrl:"https://www.youtube.com/results?search_query=diy+headband+from+tshirt+no+sew",
+    tutorialLabel:"Xem hướng dẫn YouTube" },
+  { id:"10", title:"Bao gối từ áo sơ mi", category:"Tái chế", difficulty:"Dễ", time:"25 phút",
+    description:"Áo sơ mi có sẵn hàng cúc — nhét gối vào, cài cúc lại. Không cần khâu gì thêm.",
+    materials_needed:["Gối"], clothingType:["Áo sơ mi"],
+    tags:["gối","phòng ngủ","không cần may"], likes:289,
+    image:"https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=400&q=80",
+    tutorialUrl:"https://www.pinterest.com/search/pins/?q=shirt+pillowcase+diy+no+sew",
+    tutorialLabel:"Xem ý tưởng Pinterest" },
+  { id:"11", title:"Giỏ đựng đồ từ áo len", category:"Tái chế", difficulty:"Trung bình", time:"50 phút",
+    description:"Cắt áo len thành dải, đan thành giỏ hình tròn. Dùng đựng đồ chơi, sách, hoặc cây cảnh.",
+    materials_needed:["Kéo","Móc đan"], clothingType:["Áo len"],
+    tags:["giỏ","đan","len"], likes:122,
+    image:"https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&q=80",
+    tutorialUrl:"https://www.youtube.com/results?search_query=diy+basket+from+old+sweater+knit",
+    tutorialLabel:"Xem hướng dẫn YouTube" },
+  { id:"13", title:"Áo khoác denim từ quần jeans", category:"Upcycle", difficulty:"Khó", time:"120 phút",
+    description:"Tháo đường chỉ quần jeans, cắt và may lại thành áo khoác denim độc đáo. Cần máy may.",
+    materials_needed:["Máy may","Kéo","Chỉ denim","Thước"], clothingType:["Quần jeans"],
+    tags:["áo khoác","denim","thời trang"], likes:198,
+    image:"https://images.unsplash.com/photo-1551537482-f2075a1d41f2?w=400&q=80",
+    tutorialUrl:"https://www.youtube.com/results?search_query=diy+denim+jacket+from+jeans+upcycle",
+    tutorialLabel:"Xem hướng dẫn YouTube" },
+  { id:"14", title:"Quần short từ quần dài", category:"Upcycle", difficulty:"Dễ", time:"20 phút",
+    description:"Cắt quần dài thành quần short, viền gấu bằng kéo zigzag hoặc để raw hem. Nhanh và trendy.",
+    materials_needed:["Kéo","Thước","Phấn may"], clothingType:["Quần jeans","Quần kaki"],
+    tags:["quần short","mùa hè","nhanh"], likes:267,
+    image:"https://images.unsplash.com/photo-1591195853828-11db59a44f43?w=400&q=80",
+    tutorialUrl:"https://www.youtube.com/results?search_query=diy+cut+off+shorts+from+jeans+tutorial",
+    tutorialLabel:"Xem hướng dẫn YouTube" },
+  { id:"15", title:"Túi dây rút từ áo cũ", category:"Tái chế", difficulty:"Dễ", time:"30 phút",
+    description:"Khâu miệng áo lại, thêm dây rút ở cổ áo. Thành túi đựng giày hoặc đồ gym tiện lợi.",
+    materials_needed:["Kim chỉ","Dây rút","Kéo"], clothingType:["Áo thun","Áo hoodie"],
+    tags:["túi","gym","tiện lợi"], likes:134,
+    image:"https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400&q=80",
+    tutorialUrl:"https://www.pinterest.com/search/pins/?q=tshirt+drawstring+bag+diy+tutorial",
+    tutorialLabel:"Xem ý tưởng Pinterest" },
 ];
 
 const CATEGORIES = ["Tất cả", "Tái chế", "Upcycle"];
 const DIFFICULTIES = ["Tất cả", "Rất dễ", "Dễ", "Trung bình", "Khó"];
-
-const CATEGORY_COLORS: Record<string, string> = {
+const CAT_COLORS: Record<string, string> = {
   "Tái chế": "bg-green-100 text-green-700 border-green-200",
   "Upcycle": "bg-violet-100 text-violet-700 border-violet-200",
 };
-
-const DIFFICULTY_COLORS: Record<string, string> = {
-  "Rất dễ": "text-green-600",
-  "Dễ": "text-blue-600",
-  "Trung bình": "text-yellow-600",
-  "Khó": "text-red-500",
+const DIFF_COLORS: Record<string, string> = {
+  "Rất dễ": "text-green-600", "Dễ": "text-blue-600",
+  "Trung bình": "text-yellow-600", "Khó": "text-red-500",
 };
 
-function IdeaCard({ idea, expanded, onToggle }: {
-  idea: RecycleIdea; expanded: boolean; onToggle: () => void;
-}) {
+function IdeaCard({ idea, expanded, onToggle }: { idea: RecycleIdea; expanded: boolean; onToggle: () => void }) {
   return (
     <div className={cn("rounded-2xl border bg-white overflow-hidden transition-all hover:shadow-md",
-      expanded ? "border-green-300 shadow-md" : "border-zinc-200"
-    )}>
+      expanded ? "border-green-300 shadow-md" : "border-zinc-200")}>
       <div className="flex cursor-pointer" onClick={onToggle}>
         {idea.image && (
           <div className="relative w-40 h-40 shrink-0 bg-zinc-100">
@@ -292,17 +125,14 @@ function IdeaCard({ idea, expanded, onToggle }: {
             <div className="flex items-start justify-between gap-2 mb-1.5">
               <p className="font-semibold text-zinc-900 text-sm leading-snug">{idea.title}</p>
               <span className={cn("shrink-0 rounded-full border px-2 py-0.5 text-xs font-medium",
-                CATEGORY_COLORS[idea.category] || "bg-zinc-100 text-zinc-600 border-zinc-200"
-              )}>{idea.category}</span>
+                CAT_COLORS[idea.category] || "bg-zinc-100 text-zinc-600 border-zinc-200")}>{idea.category}</span>
             </div>
             <p className="text-xs text-zinc-500 line-clamp-3 mb-3">{idea.description}</p>
           </div>
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1">
               <Wrench size={11} className="text-zinc-400" />
-              <span className={cn("text-xs font-medium", DIFFICULTY_COLORS[idea.difficulty] || "text-zinc-500")}>
-                {idea.difficulty}
-              </span>
+              <span className={cn("text-xs font-medium", DIFF_COLORS[idea.difficulty] || "text-zinc-500")}>{idea.difficulty}</span>
             </div>
             <div className="flex items-center gap-1">
               <Clock size={11} className="text-zinc-400" />
@@ -312,7 +142,6 @@ function IdeaCard({ idea, expanded, onToggle }: {
           </div>
         </div>
       </div>
-
       {expanded && (
         <div className="border-t border-zinc-100 p-5 bg-zinc-50 flex flex-col gap-4">
           {idea.image && (
@@ -332,22 +161,18 @@ function IdeaCard({ idea, expanded, onToggle }: {
             </div>
           )}
           <div className="flex flex-wrap gap-1.5">
-            {idea.tags.map((t) => (
-              <span key={t} className="rounded-full bg-green-50 px-2 py-0.5 text-xs text-green-600">#{t}</span>
-            ))}
+            {idea.tags.map((t) => <span key={t} className="rounded-full bg-green-50 px-2 py-0.5 text-xs text-green-600">#{t}</span>)}
           </div>
           {idea.tutorialUrl && (
             <a href={idea.tutorialUrl} target="_blank" rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
-              className="flex items-center justify-center gap-2 rounded-xl bg-green-600 py-3 text-sm font-semibold text-white hover:bg-green-700 transition"
-            >
+              className="flex items-center justify-center gap-2 rounded-xl bg-green-600 py-3 text-sm font-semibold text-white hover:bg-green-700 transition">
               <ExternalLink size={14} />
               {idea.tutorialLabel || "Xem hướng dẫn"}
             </a>
           )}
         </div>
       )}
-
       <div className="flex justify-center pb-1.5 cursor-pointer" onClick={onToggle}>
         {expanded ? <ChevronUp size={13} className="text-zinc-300" /> : <ChevronDown size={13} className="text-zinc-300" />}
       </div>
@@ -369,25 +194,20 @@ export default function RecycleHub() {
   const [aiExpandedId, setAiExpandedId] = useState<string | null>(null);
   const [scanError, setScanError] = useState("");
 
-  const filtered = FORUM_IDEAS.filter((idea) => {
-    const matchSearch = search === "" ||
-      idea.title.toLowerCase().includes(search.toLowerCase()) ||
-      idea.tags.some((t) => t.includes(search.toLowerCase())) ||
-      idea.clothingType.some((t) => t.toLowerCase().includes(search.toLowerCase()));
-    const matchCat = filterCat === "Tất cả" || idea.category === filterCat;
-    const matchDiff = filterDiff === "Tất cả" || idea.difficulty === filterDiff;
-    return matchSearch && matchCat && matchDiff;
+  const filtered = IDEAS.filter((idea) => {
+    const q = search.toLowerCase();
+    const matchSearch = !q || idea.title.toLowerCase().includes(q) ||
+      idea.tags.some((t) => t.includes(q)) || idea.clothingType.some((t) => t.toLowerCase().includes(q));
+    return matchSearch && (filterCat === "Tất cả" || idea.category === filterCat)
+      && (filterDiff === "Tất cả" || idea.difficulty === filterDiff);
   }).sort((a, b) => b.likes - a.likes);
 
   const handleScan = async () => {
     if (!imageBase64) return;
-    setIsScanning(true);
-    setScanError("");
-    setAiIdeas([]);
+    setIsScanning(true); setScanError(""); setAiIdeas([]);
     try {
       const res = await fetch("/api/scan-label", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ imageBase64, mimeType: imageMime }),
       });
       const result = await res.json();
@@ -404,9 +224,7 @@ export default function RecycleHub() {
       if (ideas.length > 0) setAiExpandedId("ai-0");
     } catch (err) {
       setScanError(err instanceof Error ? err.message : "Lỗi scan");
-    } finally {
-      setIsScanning(false);
-    }
+    } finally { setIsScanning(false); }
   };
 
   return (
@@ -415,21 +233,18 @@ export default function RecycleHub() {
       <div className="flex flex-col gap-4 lg:col-span-3">
         <div>
           <h3 className="font-bold text-zinc-900 text-lg">♻️ Kho ý tưởng tái chế</h3>
-          <p className="text-xs text-zinc-400 mt-0.5">Browse {FORUM_IDEAS.length} ý tưởng — không cần chụp ảnh</p>
+          <p className="text-xs text-zinc-400 mt-0.5">Browse {IDEAS.length} ý tưởng — không cần chụp ảnh</p>
         </div>
         <div className="relative">
           <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
           <input type="text" value={search} onChange={(e) => setSearch(e.target.value)}
             placeholder="Tìm ý tưởng, loại đồ, tag..."
-            className="w-full rounded-xl border border-zinc-200 pl-9 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-400 transition"
-          />
+            className="w-full rounded-xl border border-zinc-200 pl-9 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-400 transition" />
         </div>
         <div className="flex flex-col gap-2">
           <button onClick={() => setShowFilter(!showFilter)}
-            className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-700 transition w-fit"
-          >
-            <Filter size={13} />
-            Lọc theo danh mục & độ khó
+            className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-700 transition w-fit">
+            <Filter size={13} />Lọc theo danh mục & độ khó
             {showFilter ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
           </button>
           {showFilter && (
@@ -438,16 +253,14 @@ export default function RecycleHub() {
                 {CATEGORIES.map((c) => (
                   <button key={c} onClick={() => setFilterCat(c)}
                     className={cn("rounded-full px-3 py-1 text-xs font-medium transition",
-                      filterCat === c ? "bg-green-600 text-white" : "bg-white border border-zinc-200 text-zinc-500 hover:border-green-400"
-                    )}>{c}</button>
+                      filterCat === c ? "bg-green-600 text-white" : "bg-white border border-zinc-200 text-zinc-500 hover:border-green-400")}>{c}</button>
                 ))}
               </div>
               <div className="flex flex-wrap gap-1.5">
                 {DIFFICULTIES.map((d) => (
                   <button key={d} onClick={() => setFilterDiff(d)}
                     className={cn("rounded-full px-3 py-1 text-xs font-medium transition",
-                      filterDiff === d ? "bg-green-600 text-white" : "bg-white border border-zinc-200 text-zinc-500 hover:border-green-400"
-                    )}>{d}</button>
+                      filterDiff === d ? "bg-green-600 text-white" : "bg-white border border-zinc-200 text-zinc-500 hover:border-green-400")}>{d}</button>
                 ))}
               </div>
             </div>
@@ -460,10 +273,8 @@ export default function RecycleHub() {
             : filtered.map((idea) => (
               <IdeaCard key={idea.id} idea={idea}
                 expanded={expandedId === idea.id}
-                onToggle={() => setExpandedId(expandedId === idea.id ? null : idea.id)}
-              />
-            ))
-          }
+                onToggle={() => setExpandedId(expandedId === idea.id ? null : idea.id)} />
+            ))}
         </div>
       </div>
 
@@ -480,11 +291,9 @@ export default function RecycleHub() {
           </div>
           <ImageUploader label="" hint="Chụp áo cũ, quần jeans, hoặc tem thành phần"
             previewUrl={imagePreview}
-            onImageChange={(b64, mime, preview) => { setImageBase64(b64); setImageMime(mime); setImagePreview(preview); }}
-          />
+            onImageChange={(b64, mime, preview) => { setImageBase64(b64); setImageMime(mime); setImagePreview(preview); }} />
           <button onClick={handleScan} disabled={!imageBase64 || isScanning}
-            className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-green-600 py-3 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-40 disabled:cursor-not-allowed transition"
-          >
+            className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-green-600 py-3 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-40 disabled:cursor-not-allowed transition">
             {isScanning ? <><Loader2 size={15} className="animate-spin" /> AI đang phân tích...</> : <><Sparkles size={15} /> Tìm ý tưởng tái chế</>}
           </button>
         </div>
@@ -498,16 +307,13 @@ export default function RecycleHub() {
             {aiIdeas.map((idea) => (
               <IdeaCard key={idea.id} idea={idea}
                 expanded={aiExpandedId === idea.id}
-                onToggle={() => setAiExpandedId(aiExpandedId === idea.id ? null : idea.id)}
-              />
+                onToggle={() => setAiExpandedId(aiExpandedId === idea.id ? null : idea.id)} />
             ))}
           </div>
         )}
         {!isScanning && aiIdeas.length === 0 && !scanError && (
           <div className="flex flex-col items-center gap-3 rounded-2xl border-2 border-dashed border-zinc-200 py-10">
-            <div className="rounded-full bg-green-50 p-4">
-              <Recycle size={24} className="text-green-300" />
-            </div>
+            <div className="rounded-full bg-green-50 p-4"><Recycle size={24} className="text-green-300" /></div>
             <div className="text-center">
               <p className="text-sm font-semibold text-zinc-500">Chưa có gợi ý AI</p>
               <p className="text-xs text-zinc-400 mt-1">Chụp sản phẩm để AI tạo ý tưởng riêng cho bạn</p>
