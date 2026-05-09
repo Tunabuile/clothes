@@ -199,7 +199,7 @@ function IdeaCard({ idea, expanded, onToggle }: {
       <div className="flex cursor-pointer" onClick={onToggle}>
         {/* Ảnh bên trái */}
         {idea.image && (
-          <div className="relative w-36 h-36 shrink-0 bg-zinc-100">
+          <div className="relative w-40 h-40 shrink-0 bg-zinc-100">
             <Image
               src={idea.image}
               alt={idea.title}
@@ -356,10 +356,10 @@ export default function RecycleHub() {
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
 
       {/* ── CỘT TRÁI: FORUM Ý TƯỞNG ── */}
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-4 lg:col-span-3">
         <div>
           <h3 className="font-bold text-zinc-900 text-lg">♻️ Kho ý tưởng tái chế</h3>
           <p className="text-xs text-zinc-400 mt-0.5">Browse {FORUM_IDEAS.length} ý tưởng — không cần chụp ảnh</p>
@@ -413,7 +413,7 @@ export default function RecycleHub() {
         <p className="text-xs text-zinc-400">{filtered.length} ý tưởng</p>
 
         {/* Ideas list */}
-        <div className="flex flex-col gap-3 max-h-[70vh] overflow-y-auto pr-1">
+        <div className="flex flex-col gap-3 overflow-y-auto pr-1" style={{maxHeight: "75vh"}}>
           {filtered.length === 0 ? (
             <div className="text-center py-10 text-zinc-400 text-sm">Không tìm thấy ý tưởng phù hợp</div>
           ) : (
@@ -430,7 +430,7 @@ export default function RecycleHub() {
       </div>
 
       {/* ── CỘT PHẢI: AI HỖ TRỢ ── */}
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-4 lg:col-span-2">
         <div>
           <h3 className="font-bold text-zinc-900 text-lg">🤖 AI Hỗ trợ thiết kế</h3>
           <p className="text-xs text-zinc-400 mt-0.5">Chụp sản phẩm → AI gợi ý ý tưởng tái chế cá nhân hóa</p>
