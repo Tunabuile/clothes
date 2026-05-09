@@ -67,7 +67,7 @@ const IDEAS: Idea[] = [
   { id:"11", title:"Quần short từ quần dài", category:"Upcycle", difficulty:"Dễ", time:"20 phút",
     description:"Cắt quần dài thành quần short, để raw hem. Nhanh và trendy.",
     materials_needed:["Kéo","Thước"], clothingType:["Quần jeans","Quần kaki"], tags:["quần short","mùa hè"], likes:267,
-    searchQuery:"denim shorts summer fashion",
+    searchQuery:"denim jeans scissors cutting fabric DIY",
     tutorialUrl:"https://www.youtube.com/results?search_query=diy+cut+off+shorts+jeans", tutorialLabel:"Xem YouTube" },
   { id:"12", title:"Túi dây rút từ áo cũ", category:"Tái chế", difficulty:"Dễ", time:"30 phút",
     description:"Khâu miệng áo lại, thêm dây rút ở cổ áo. Thành túi đựng giày hoặc đồ gym.",
