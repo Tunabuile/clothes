@@ -33,26 +33,29 @@ export async function POST(req: NextRequest) {
               },
               {
                 type: "text",
-                text: `Bạn là chuyên gia tái chế thời trang. Nhìn vào ảnh này (có thể là tem nhãn quần áo, hoặc sản phẩm quần áo).
+                text: `Bạn là chuyên gia upcycle thời trang sáng tạo. Nhìn vào ảnh này (tem nhãn hoặc sản phẩm quần áo).
 
 Hãy phân tích và trả về JSON theo format sau:
 {
-  "material": "mô tả chất liệu đọc được hoặc nhìn thấy (vd: 100% Cotton, Polyester 80% Cotton 20%, Vải denim...)",
+  "material": "chất liệu đọc được hoặc nhìn thấy (vd: 100% Cotton, Denim, Polyester...)",
   "clothingType": "loại đồ (vd: Áo thun, Quần jeans, Áo sơ mi...)",
   "condition": "tình trạng (Mới, Còn tốt, Cũ)",
   "recycleSuggestions": [
     {
-      "title": "Tên ý tưởng tái chế cụ thể",
+      "title": "Tên ý tưởng sáng tạo, thời trang",
       "category": "Tái chế hoặc Upcycle",
       "difficulty": "Rất dễ hoặc Dễ hoặc Trung bình hoặc Khó",
       "time": "thời gian ước tính vd 20 phút",
-      "description": "Mô tả cách tái chế chi tiết bằng tiếng Việt, 1-2 câu",
+      "description": "Mô tả cách làm chi tiết bằng tiếng Việt, 1-2 câu",
       "materials_needed": ["dụng cụ cần thiết"]
     }
   ]
 }
 
-Đưa ra 4-5 ý tưởng tái chế phù hợp với loại vải/đồ nhìn thấy. Chỉ trả về JSON thuần, không có text khác.`,
+Đưa ra 4-5 ý tưởng SÁNG TẠO, thời trang (túi xách, phụ kiện, trang phục mới, đồ decor đẹp...).
+TUYỆT ĐỐI KHÔNG gợi ý: giẻ lau, khăn lau, dây buộc tóc đơn giản, hoặc bất kỳ ý tưởng nhàm chán nào.
+Ưu tiên: upcycle thành item thời trang mặc được, phụ kiện trendy, hoặc đồ decor aesthetic.
+Chỉ trả về JSON thuần, không có text khác.`,
               },
             ],
           },
