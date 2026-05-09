@@ -106,21 +106,21 @@ Phân tích và trả về JSON (chỉ JSON):
 }`;
 
   const text = await generateText(prompt);
-  const profile = extractJSON(text);
+  const profile = extractJSON(text) as any;
 
   await saveStyleProfile({
     user_id: userId,
-    total_outfits: profile.total_outfits,
-    avg_rating: profile.avg_rating,
-    top_colors: profile.top_colors || [],
-    top_styles: profile.top_styles || [],
-    top_occasions: profile.top_occasions || [],
-    disliked_combos: profile.disliked_combos || [],
-    liked_combos: profile.liked_combos || [],
-    personality_tags: profile.personality_tags || [],
-    style_summary: profile.style_summary,
-    color_preferences: profile.color_preferences,
-    outfit_rules: profile.outfit_rules || [],
+    total_outfits: Number(profile.total_outfits || 0),
+    avg_rating: Number(profile.avg_rating || 0),
+    top_colors: Array.isArray(profile.top_colors) ? profile.top_colors : [],
+    top_styles: Array.isArray(profile.top_styles) ? profile.top_styles : [],
+    top_occasions: Array.isArray(profile.top_occasions) ? profile.top_occasions : [],
+    disliked_combos: Array.isArray(profile.disliked_combos) ? profile.disliked_combos : [],
+    liked_combos: Array.isArray(profile.liked_combos) ? profile.liked_combos : [],
+    personality_tags: Array.isArray(profile.personality_tags) ? profile.personality_tags : [],
+    style_summary: String(profile.style_summary || ""),
+    color_preferences: profile.color_preferences || {},
+    outfit_rules: Array.isArray(profile.outfit_rules) ? profile.outfit_rules : [],
   });
 
   return profile;

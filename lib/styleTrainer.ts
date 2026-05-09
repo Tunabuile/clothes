@@ -46,14 +46,14 @@ Phân tích và trả về JSON (chỉ JSON):
 }`;
 
   const text = await generateText(prompt, 200);
-  const profile = extractJSON(text);
+  const profile = extractJSON(text) as any;
 
   await saveStyleProfile({
     user_id: userId,
     ...profile,
   });
 
-  return profile.style_summary || "Đã cập nhật style profile!";
+  return (profile.style_summary || "Đã cập nhật style profile!") as string;
 }
 
 /**

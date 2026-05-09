@@ -149,14 +149,7 @@ export async function autoAnalyzeClothingFromUrl(imageUrl: string): Promise<{
   tags: string[];
   trendScore: number;
 }> {
-  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-
-  // Download ảnh
-  const res = await fetch(imageUrl);
-  const buffer = await res.arrayBuffer();
-  const base64 = Buffer.from(buffer).toString("base64");
-
-  const prompt = `Phân tích ảnh quần áo này. Trả về JSON (chỉ JSON):
+  const prompt = `Phân tích ảnh quần áo từ URL: ${imageUrl}. Trả về JSON (chỉ JSON):
 {
   "type": "loại đồ (T-shirt/Jeans/Dress/...)",
   "color": "màu chính",
@@ -167,16 +160,17 @@ export async function autoAnalyzeClothingFromUrl(imageUrl: string): Promise<{
   "trendScore": 75
 }`;
 
-  const result = await model.generateContent([
-    prompt,
-    { inlineData: { data: base64, mimeType: "image/jpeg" } },
-  ]);
-
-  const text = result.response.text();
-  const jsonMatch = text.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) throw new Error("Không phân tích được ảnh");
-
-  return JSON.parse(jsonMatch[0]);
+  const text = await generateText(prompt, 150);
+  const data = extractJSON(text) as any;
+  return {
+    type: String(data.type || "Unknown"),
+    color: String(data.color || "Unknown"),
+    material: String(data.material || "Unknown"),
+    style: String(data.style || "Unknown"),
+    condition: String(data.condition || "Good"),
+    tags: Array.isArray(data.tags) ? data.tags : [],
+    trendScore: Number(data.trendScore || 50),
+  };
 }
 
 /**
@@ -191,8 +185,6 @@ export async function generateFashionInspirations(
   outfits: { name: string; items: string[]; description: string; score: number }[];
   trendingNow: string[];
 }> {
-  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-
   const trendContext = `
 Xu hướng 2025: ${FASHION_TRENDS_2025.styles.hot.join(", ")}
 Màu trending: ${FASHION_TRENDS_2025.colors.trending.join(", ")}
@@ -219,12 +211,20 @@ Trả về JSON:
   "trendingNow": ["trend đang hot nhất"]
 }`;
 
-  const result = await model.generateContent(prompt);
-  const text = result.response.text();
-  const jsonMatch = text.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) throw new Error("AI không tạo được inspiration");
+  const text = await generateText(prompt, 200);
+  const data = extractJSON(text) as any;
 
-  return JSON.parse(jsonMatch[0]);
+  return {
+    outfits: Array.isArray(data.outfits)
+      ? data.outfits.map((o: any) => ({
+          name: String(o.name || "Untitled"),
+          items: Array.isArray(o.items) ? o.items : [],
+          description: String(o.description || ""),
+          score: Number(o.score || 75),
+        }))
+      : [],
+    trendingNow: Array.isArray(data.trendingNow) ? data.trendingNow : [],
+  };
 }
 
 /**
