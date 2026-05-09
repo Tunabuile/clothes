@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { generateText, extractJSON } from "@/lib/hf";
+import { generateText, extractJSON } from "@/lib/huggingface";
 import { getStyleProfile } from "@/lib/supabase";
 import { buildDeepPersonalizedPrompt } from "@/lib/autoTrainer";
 import { evaluateColorCombo } from "@/lib/colorTheory";

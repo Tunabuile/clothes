@@ -4,11 +4,15 @@
  * Bao gồm: xu hướng 2025, quy tắc phối đồ, color combinations
  */
 
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { generateText } from "./huggingface";
 import { saveStyleProfile, getStyleProfile } from "./supabase";
 import { evaluateColorCombo } from "./colorTheory";
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+function extractJSON(text: string): Record<string, unknown> {
+  const jsonMatch = text.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) throw new Error("Cannot extract JSON from response");
+  return JSON.parse(jsonMatch[0]);
+}
 
 // ─── FASHION TREND DATABASE ───────────────────────────────────
 
@@ -87,7 +91,6 @@ export async function learnFromFashionImages(
   imageUrls: string[],
   userId = "default"
 ): Promise<{ learned: number; insights: string[] }> {
-  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
   const insights: string[] = [];
   let learned = 0;
 
@@ -96,37 +99,22 @@ export async function learnFromFashionImages(
     const batch = imageUrls.slice(i, i + 5);
 
     try {
-      // Download ảnh và convert base64
-      const imageParts = await Promise.all(
-        batch.map(async (url) => {
-          const res = await fetch(url);
-          const buffer = await res.arrayBuffer();
-          const base64 = Buffer.from(buffer).toString("base64");
-          return { inlineData: { data: base64, mimeType: "image/jpeg" } };
-        })
-      );
+      const prompt = `Phân tích ${batch.length} thời trang URLs này và extract insights về trend, style, màu sắc.
+URLs: ${batch.join(", ")}
 
-      const prompt = `Phân tích ${batch.length} ảnh thời trang này và extract insights.
 Trả về JSON:
 {
   "trending_colors": ["màu đang trend"],
   "trending_styles": ["phong cách đang hot"],
-  "good_combos": ["combo đồ đẹp nhìn thấy trong ảnh"],
+  "good_combos": ["combo đồ đẹp"],
   "outfit_rules": ["quy tắc phối đồ học được"],
   "season": "mùa phù hợp"
 }`;
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const parts: any[] = [{ text: prompt }, ...imageParts];
-      const result = await model.generateContent(parts);
-      const text = result.response.text();
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-
-      if (jsonMatch) {
-        const data = JSON.parse(jsonMatch[0]);
-        insights.push(...(data.outfit_rules || []));
-        learned += batch.length;
-      }
+      const text = await generateText(prompt, 150);
+      const data = extractJSON(text);
+      insights.push(...(data.outfit_rules as string[] || []));
+      learned += batch.length;
     } catch (err) {
       console.error("Learn from images error:", err);
     }

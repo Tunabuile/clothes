@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { captionImage, generateText, extractJSON } from "@/lib/hf";
+import { captionImage, generateText, extractJSON } from "@/lib/huggingface";
 
 export async function POST(req: NextRequest) {
   try {

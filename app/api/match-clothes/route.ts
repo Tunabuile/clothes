@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { computeCompatibilityMatrix, findBestCombos } from "@/lib/clipMatcher";
-import { generateText, extractJSON } from "@/lib/hf";
+import { generateText, extractJSON } from "@/lib/huggingface";
 
 export async function POST(req: NextRequest) {
   try {

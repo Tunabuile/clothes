@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { generateText } from "@/lib/hf";
+import { describeOutfit } from "@/lib/huggingface";
 
 export async function POST(req: NextRequest) {
   try {
@@ -13,18 +13,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const prompt = `You are a fashion stylist AI. A person with height ${height || 170}cm and weight ${weight || 60}kg wants to wear this outfit.
-User request: "${userRequest || "No specific request"}"
-
-Describe in Vietnamese:
-- Outfit style and vibe
-- How it fits the person's body type
-- Color and material suggestions
-- Accessory recommendations
-
-Keep it short, friendly, and practical. No JSON needed.`;
-
-    const resultText = await generateText(prompt);
+    const resultText = await describeOutfit(
+      personImageBase64,
+      clothImageBase64,
+      Number(height || 170),
+      Number(weight || 60),
+      userRequest || ""
+    );
 
     return NextResponse.json({ success: true, resultText });
   } catch (error) {

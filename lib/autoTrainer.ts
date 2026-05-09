@@ -5,8 +5,14 @@
  */
 
 import { getRatedOutfits, saveStyleProfile, getStyleProfile } from "./supabase";
-import { generateText, extractJSON } from "./hf";
+import { generateText } from "./huggingface";
 import { evaluateColorCombo } from "./colorTheory";
+
+function extractJSON(text: string): Record<string, unknown> {
+  const jsonMatch = text.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) throw new Error("Cannot extract JSON from response");
+  return JSON.parse(jsonMatch[0]);
+}
 
 const AUTO_TRAIN_THRESHOLD = 3; // train sau mỗi 3 feedback mới
 
@@ -55,8 +61,6 @@ export async function deepTrainStyleProfile(
 ) {
   const outfits = ratedOutfits || (await getRatedOutfits());
   if (outfits.length === 0) return null;
-
-  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
   // Phân tích color theory từ các outfit được rate cao
   const highRatedOutfits = outfits.filter((o) => (o.user_rating || 0) >= 4);

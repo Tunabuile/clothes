@@ -1,7 +1,11 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { generateText } from "./huggingface";
 import { getRatedOutfits, saveStyleProfile } from "./supabase";
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+function extractJSON(text: string): Record<string, unknown> {
+  const jsonMatch = text.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) throw new Error("Cannot extract JSON from response");
+  return JSON.parse(jsonMatch[0]);
+}
 
 /**
  * "Self-training" AI:
@@ -14,8 +18,6 @@ export async function trainStyleProfile(userId = "default"): Promise<string> {
   if (ratedOutfits.length === 0) {
     return "Chưa có đủ dữ liệu để train. Hãy rate thêm outfit!";
   }
-
-  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
   // Tóm tắt feedback cho AI phân tích
   const feedbackSummary = ratedOutfits
@@ -43,12 +45,8 @@ Phân tích và trả về JSON (chỉ JSON):
   "style_summary": "Mô tả ngắn về phong cách của người dùng"
 }`;
 
-  const result = await model.generateContent(prompt);
-  const text = result.response.text();
-  const jsonMatch = text.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) throw new Error("AI không phân tích được");
-
-  const profile = JSON.parse(jsonMatch[0]);
+  const text = await generateText(prompt, 200);
+  const profile = extractJSON(text);
 
   await saveStyleProfile({
     user_id: userId,
