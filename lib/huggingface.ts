@@ -99,7 +99,8 @@ export function extractJSON(text: string): Record<string, unknown> {
 }
 
 export async function captionImage(imageBase64: string): Promise<string> {
-  const binary = Buffer.from(imageBase64, "base64");
+  const base64Data = imageBase64.includes(",") ? imageBase64.split(",")[1] : imageBase64;
+  const binary = Buffer.from(base64Data, "base64");
 
   const response = await fetch(
     `${HF_INFERENCE_BASE}/Salesforce/blip-image-captioning-large`,
