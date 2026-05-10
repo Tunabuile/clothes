@@ -17,8 +17,11 @@ export async function POST(req: NextRequest) {
     if (personImageBase64) {
       try {
         personDesc = await captionImage(personImageBase64);
-      } catch (e) {
+      } catch (e: any) {
         console.error("Caption person error:", e);
+        if (e.message.includes("401") || e.message.includes("Thiếu HUGGINGFACE_TOKEN")) {
+           return NextResponse.json({ error: "Lỗi HUGGINGFACE_TOKEN không hợp lệ. Vui lòng cập nhật token mới trên Vercel/env!" }, { status: 401 });
+        }
       }
     }
 
@@ -26,8 +29,11 @@ export async function POST(req: NextRequest) {
     if (clothImageBase64) {
       try {
         clothDesc = await captionImage(clothImageBase64);
-      } catch (e) {
+      } catch (e: any) {
         console.error("Caption cloth error:", e);
+        if (e.message.includes("401") || e.message.includes("Thiếu HUGGINGFACE_TOKEN")) {
+           return NextResponse.json({ error: "Lỗi HUGGINGFACE_TOKEN không hợp lệ. Vui lòng cập nhật token mới trên Vercel/env!" }, { status: 401 });
+        }
       }
     }
 
