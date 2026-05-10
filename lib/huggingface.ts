@@ -1,6 +1,8 @@
 const HF_TOKEN = process.env.HUGGINGFACE_TOKEN || "";
-const HF_TEXT_MODEL = process.env.HUGGINGFACE_TEXT_MODEL || "google/flan-t5-small";
-const HF_TEXT_API = `https://router.huggingface.co/hf-inference/models/${HF_TEXT_MODEL}`;
+const HF_TEXT_MODEL =
+  process.env.HUGGINGFACE_TEXT_MODEL || "katanemo/Arch-Router-1.5B:hf-inference";
+const HF_CHAT_API = "https://router.huggingface.co/v1/chat/completions";
+const HF_INFERENCE_BASE = "https://router.huggingface.co/hf-inference/models";
 
 function hfHeaders() {
   if (!HF_TOKEN) {
@@ -16,18 +18,17 @@ async function generateText(
   prompt: string,
   maxTokens = 180
 ): Promise<string> {
-  const response = await fetch(HF_TEXT_API, {
+  const response = await fetch(HF_CHAT_API, {
     method: "POST",
     headers: hfHeaders(),
     body: JSON.stringify({
-      inputs: prompt,
-      options: { wait_for_model: true },
-      parameters: {
-        max_new_tokens: maxTokens,
-        temperature: 0.7,
-        top_p: 0.9,
-        return_full_text: false,
-      },
+      model: HF_TEXT_MODEL,
+      messages: [
+        { role: "system", content: "You are a helpful assistant." },
+        { role: "user", content: prompt },
+      ],
+      max_tokens: maxTokens,
+      temperature: 0.7,
     }),
   });
 
@@ -39,16 +40,9 @@ async function generateText(
   }
 
   const data = await response.json();
-  if (typeof data === "string") return data;
-  if (Array.isArray(data) && data.length > 0) {
-    if (typeof data[0] === "string") return data[0];
-    if (typeof data[0]?.generated_text === "string") return data[0].generated_text;
-  }
-  if (data?.error) {
-    throw new Error(data.error);
-  }
-
-  return JSON.stringify(data);
+  const content = data?.choices?.[0]?.message?.content;
+  if (typeof content === "string") return content;
+  throw new Error("Hugging Face text response không hợp lệ");
 }
 
 export async function describeOutfit(
@@ -79,33 +73,47 @@ export function extractJSON(text: string): Record<string, unknown> {
 }
 
 export async function captionImage(imageBase64: string): Promise<string> {
-  const prompt = "Mô tả chi tiết hình ảnh này, tập trung vào chi tiết quần áo, màu sắc, phong cách. Trả về mô tả ngắn gọn dưới 50 từ.";
-  return await generateText(prompt, 80);
+  const binary = Buffer.from(imageBase64, "base64");
+
+  const response = await fetch(
+    `${HF_INFERENCE_BASE}/Salesforce/blip-image-captioning-large`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/octet-stream",
+        Authorization: hfHeaders().Authorization,
+      },
+      body: binary,
+    }
+  );
+
+  if (!response.ok) {
+    const err = await response.text();
+    throw new Error(`HF Caption error ${response.status}: ${err.slice(0, 400)}`);
+  }
+
+  const data = await response.json();
+  return data?.[0]?.generated_text || "";
 }
 
 export async function generateImage(prompt: string): Promise<string> {
-  const hf_prompt = `Generate a fashion outfit image based on this description: ${prompt}. Return image description and recommendations.`;
-  const response = await fetch(HF_TEXT_API, {
+  const model =
+    process.env.HUGGINGFACE_IMAGE_MODEL || "black-forest-labs/FLUX.1-schnell";
+  const response = await fetch(`${HF_INFERENCE_BASE}/${model}`, {
     method: "POST",
     headers: hfHeaders(),
     body: JSON.stringify({
-      inputs: hf_prompt,
-      options: { wait_for_model: true },
+      inputs: prompt,
     }),
   });
 
   if (!response.ok) {
     const err = await response.text();
-    throw new Error(`HF image generation failed: ${err}`);
+    throw new Error(`HF Image error ${response.status}: ${err.slice(0, 400)}`);
   }
 
-  const data = await response.json();
-  if (typeof data === "string") return data;
-  if (Array.isArray(data) && data.length > 0) {
-    if (typeof data[0] === "string") return data[0];
-    if (typeof data[0]?.generated_text === "string") return data[0].generated_text;
-  }
-  return JSON.stringify(data);
+  const buffer = await response.arrayBuffer();
+  return Buffer.from(buffer).toString("base64");
 }
 
 export { generateText };
