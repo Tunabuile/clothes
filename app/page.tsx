@@ -58,6 +58,8 @@ export default function Home() {
 
   // Kết quả try-on
   const [resultText, setResultText] = useState("");
+  const [personDesc, setPersonDesc] = useState("");
+  const [clothDesc, setClothDesc] = useState("");
   const [generatedImageUrl, setGeneratedImageUrl] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
@@ -146,6 +148,8 @@ export default function Home() {
         if (!res.ok) throw new Error(data.error);
 
         setResultText(data.resultText || "AI chưa trả về kết quả.");
+        setPersonDesc(data.personDesc || "");
+        setClothDesc(data.clothDesc || "");
 
         // Cập nhật tryOnCount nếu từ tủ đồ
         if (clothItem) {
@@ -182,7 +186,7 @@ export default function Home() {
       const res = await fetch("/api/generate-image", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt, style: "realistic", aspectRatio: "1:1" }),
+        body: JSON.stringify({ prompt, style: "realistic", aspectRatio: "1:1", personDesc, clothDesc }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Lỗi tạo ảnh");
@@ -192,7 +196,7 @@ export default function Home() {
     } finally {
       setIsGeneratingImage(false);
     }
-  }, [resultText, userRequest]);
+  }, [resultText, userRequest, personDesc, clothDesc]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-violet-50 via-white to-pink-50">
