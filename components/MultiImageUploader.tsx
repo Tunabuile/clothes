@@ -87,7 +87,7 @@ export default function MultiImageUploader({
 
       {/* Grid preview */}
       {images.length > 0 && (
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
           {images.map((img) => (
             <div
               key={img.id}

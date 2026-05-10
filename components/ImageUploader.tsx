@@ -54,9 +54,9 @@ export default function ImageUploader({
             <Image
               src={previewUrl}
               alt="preview"
-              width={320}
-              height={220}
-              className="object-contain"
+              width={800}
+              height={600}
+              className="h-auto w-full object-contain"
             />
             <button
               onClick={handleClear}

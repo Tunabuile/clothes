@@ -214,7 +214,7 @@ export default function Home() {
       )}
       {/* Header */}
       <header className="sticky top-0 z-10 border-b border-zinc-100 bg-white/80 backdrop-blur-md">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+        <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-4">
           <div className="flex items-center gap-2.5">
             <div className="rounded-xl bg-violet-600 p-2">
               <Sparkles size={20} className="text-white" />
@@ -225,11 +225,12 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Tabs */}
-          <div className="flex rounded-xl border border-zinc-200 bg-zinc-50 p-1">
+          {/* Tabs (Chỉ hiện trên màn hình lớn) */}
+          <div className="hidden sm:block w-full overflow-x-auto">
+            <div className="flex w-max sm:w-auto sm:justify-end rounded-xl sm:rounded-none sm:border-0 sm:bg-transparent border border-zinc-200 bg-zinc-50 p-1 sm:p-0 gap-1 sm:gap-2">
             <button
               onClick={() => setActiveTab("tryon")}
-              className={`flex items-center gap-1.5 rounded-lg px-4 py-1.5 text-sm font-medium transition ${
+              className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-medium transition sm:px-4 sm:text-sm ${
                 activeTab === "tryon"
                   ? "bg-white text-violet-700 shadow-sm"
                   : "text-zinc-500 hover:text-zinc-700"
@@ -240,7 +241,7 @@ export default function Home() {
             </button>
             <button
               onClick={() => setActiveTab("closet")}
-              className={`flex items-center gap-1.5 rounded-lg px-4 py-1.5 text-sm font-medium transition ${
+              className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-medium transition sm:px-4 sm:text-sm ${
                 activeTab === "closet"
                   ? "bg-white text-violet-700 shadow-sm"
                   : "text-zinc-500 hover:text-zinc-700"
@@ -256,7 +257,7 @@ export default function Home() {
             </button>
             <button
               onClick={() => setActiveTab("stylist")}
-              className={`flex items-center gap-1.5 rounded-lg px-4 py-1.5 text-sm font-medium transition ${
+              className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-medium transition sm:px-4 sm:text-sm ${
                 activeTab === "stylist"
                   ? "bg-white text-violet-700 shadow-sm"
                   : "text-zinc-500 hover:text-zinc-700"
@@ -267,7 +268,7 @@ export default function Home() {
             </button>
             <button
               onClick={() => setActiveTab("profile")}
-              className={`flex items-center gap-1.5 rounded-lg px-4 py-1.5 text-sm font-medium transition ${
+              className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-medium transition sm:px-4 sm:text-sm ${
                 activeTab === "profile"
                   ? "bg-white text-violet-700 shadow-sm"
                   : "text-zinc-500 hover:text-zinc-700"
@@ -278,7 +279,7 @@ export default function Home() {
             </button>
             <button
               onClick={() => setActiveTab("clip")}
-              className={`flex items-center gap-1.5 rounded-lg px-4 py-1.5 text-sm font-medium transition ${
+              className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-medium transition sm:px-4 sm:text-sm ${
                 activeTab === "clip"
                   ? "bg-white text-blue-700 shadow-sm"
                   : "text-zinc-500 hover:text-zinc-700"
@@ -289,7 +290,7 @@ export default function Home() {
             </button>
             <button
               onClick={() => setActiveTab("auto")}
-              className={`flex items-center gap-1.5 rounded-lg px-4 py-1.5 text-sm font-medium transition ${
+              className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-medium transition sm:px-4 sm:text-sm ${
                 activeTab === "auto"
                   ? "bg-white text-green-700 shadow-sm"
                   : "text-zinc-500 hover:text-zinc-700"
@@ -300,7 +301,7 @@ export default function Home() {
             </button>
             <button
               onClick={() => setActiveTab("recycle")}
-              className={`flex items-center gap-1.5 rounded-lg px-4 py-1.5 text-sm font-medium transition ${
+              className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-medium transition sm:px-4 sm:text-sm ${
                 activeTab === "recycle"
                   ? "bg-white text-green-700 shadow-sm"
                   : "text-zinc-500 hover:text-zinc-700"
@@ -310,15 +311,16 @@ export default function Home() {
               Tái chế
             </button>
           </div>
+          </div>
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl px-6 py-8">
+      <main className="mx-auto max-w-6xl px-4 py-5 pb-24 sm:px-6 sm:py-8 sm:pb-8">
         {/* ===== TAB: PHỐI ĐỒ THÔNG MINH ===== */}
         {activeTab === "tryon" && (
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-3">
             {/* Cột trái: Upload + Body */}
-            <div className="flex flex-col gap-5 lg:col-span-1">
+            <div className="flex flex-col gap-4 sm:gap-5 lg:col-span-1">
               <ImageUploader
                 label="📸 Ảnh của bạn (tuỳ chọn)"
                 hint="Nếu có ảnh, AI tư vấn vừa vặn & dáng người tốt hơn"
@@ -340,7 +342,7 @@ export default function Home() {
             </div>
 
             {/* Cột giữa: Ảnh đồ + nút */}
-            <div className="flex flex-col gap-5 lg:col-span-1">
+            <div className="flex flex-col gap-4 sm:gap-5 lg:col-span-1">
               <div className="flex flex-col gap-2">
                 <MultiImageUploader
                   label="👕 Ảnh quần áo"
@@ -355,7 +357,7 @@ export default function Home() {
                     <p className="mb-2 text-sm font-semibold text-zinc-700">
                       Chọn món quần áo để AI nhận diện và thử
                     </p>
-                    <div className="grid grid-cols-4 gap-2">
+                    <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
                       {clothImages.map((img) => (
                         <button
                           key={img.id}
@@ -599,6 +601,84 @@ export default function Home() {
           </div>
         )}
       </main>
+
+      {/* ===== BOTTOM NAVIGATION (Chỉ hiện trên Mobile) ===== */}
+      <nav className="fixed bottom-0 left-0 z-50 w-full border-t border-zinc-200 bg-white/90 backdrop-blur-md sm:hidden pb-safe">
+        <div className="flex items-center gap-1 overflow-x-auto px-3 py-2 scrollbar-hide">
+          <button
+            onClick={() => setActiveTab("tryon")}
+            className={`flex flex-col items-center justify-center min-w-[70px] shrink-0 gap-1 rounded-xl p-2 transition-colors ${
+              activeTab === "tryon" ? "bg-violet-50 text-violet-700" : "text-zinc-500 hover:text-zinc-700"
+            }`}
+          >
+            <Wand2 size={20} />
+            <span className="text-[10px] font-medium">Phối đồ</span>
+          </button>
+          
+          <button
+            onClick={() => setActiveTab("closet")}
+            className={`relative flex flex-col items-center justify-center min-w-[70px] shrink-0 gap-1 rounded-xl p-2 transition-colors ${
+              activeTab === "closet" ? "bg-violet-50 text-violet-700" : "text-zinc-500 hover:text-zinc-700"
+            }`}
+          >
+            <Shirt size={20} />
+            <span className="text-[10px] font-medium">Tủ đồ</span>
+            {closet.length > 0 && (
+              <span className="absolute top-1.5 right-3 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white"></span>
+            )}
+          </button>
+          
+          <button
+            onClick={() => setActiveTab("stylist")}
+            className={`flex flex-col items-center justify-center min-w-[70px] shrink-0 gap-1 rounded-xl p-2 transition-colors ${
+              activeTab === "stylist" ? "bg-violet-50 text-violet-700" : "text-zinc-500 hover:text-zinc-700"
+            }`}
+          >
+            <Brain size={20} />
+            <span className="text-[10px] font-medium">AI Stylist</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab("profile")}
+            className={`flex flex-col items-center justify-center min-w-[70px] shrink-0 gap-1 rounded-xl p-2 transition-colors ${
+              activeTab === "profile" ? "bg-violet-50 text-violet-700" : "text-zinc-500 hover:text-zinc-700"
+            }`}
+          >
+            <User size={20} />
+            <span className="text-[10px] font-medium">Profile AI</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab("clip")}
+            className={`flex flex-col items-center justify-center min-w-[70px] shrink-0 gap-1 rounded-xl p-2 transition-colors ${
+              activeTab === "clip" ? "bg-blue-50 text-blue-700" : "text-zinc-500 hover:text-zinc-700"
+            }`}
+          >
+            <Zap size={20} />
+            <span className="text-[10px] font-medium">CLIP</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab("auto")}
+            className={`flex flex-col items-center justify-center min-w-[70px] shrink-0 gap-1 rounded-xl p-2 transition-colors ${
+              activeTab === "auto" ? "bg-green-50 text-green-700" : "text-zinc-500 hover:text-zinc-700"
+            }`}
+          >
+            <Bot size={20} />
+            <span className="text-[10px] font-medium">Auto AI</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab("recycle")}
+            className={`flex flex-col items-center justify-center min-w-[70px] shrink-0 gap-1 rounded-xl p-2 transition-colors ${
+              activeTab === "recycle" ? "bg-green-50 text-green-700" : "text-zinc-500 hover:text-zinc-700"
+            }`}
+          >
+            <Recycle size={20} />
+            <span className="text-[10px] font-medium">Tái chế</span>
+          </button>
+        </div>
+      </nav>
     </div>
   );
 }

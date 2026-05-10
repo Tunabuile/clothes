@@ -21,7 +21,7 @@ export default function TryOnResult({
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center gap-4 rounded-2xl border-2 border-dashed border-violet-200 bg-violet-50 min-h-[320px]">
+      <div className="flex flex-col items-center justify-center gap-4 rounded-2xl border-2 border-dashed border-violet-200 bg-violet-50 min-h-[240px] sm:min-h-[320px]">
         <div className="relative">
           <div className="h-16 w-16 rounded-full border-4 border-violet-200 border-t-violet-600 animate-spin" />
           <Sparkles
@@ -41,7 +41,7 @@ export default function TryOnResult({
 
   if (!resultText) {
     return (
-      <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-zinc-200 bg-zinc-50 min-h-[320px]">
+      <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-zinc-200 bg-zinc-50 min-h-[240px] sm:min-h-[320px]">
         <div className="rounded-full bg-zinc-100 p-5">
           <Sparkles size={32} className="text-zinc-300" />
         </div>
@@ -52,7 +52,7 @@ export default function TryOnResult({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="rounded-2xl border border-zinc-200 bg-white p-4 min-h-[220px]">
+      <div className="rounded-2xl border border-zinc-200 bg-white p-3 min-h-[220px] sm:p-4">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-violet-600 mb-3">
           ✨ Kết quả bằng văn bản
         </p>
@@ -63,7 +63,7 @@ export default function TryOnResult({
 
       {generatedImageUrl ? (
         <div className="rounded-2xl border border-zinc-200 bg-zinc-50 overflow-hidden">
-          <div className="relative h-72">
+          <div className="relative h-56 sm:h-72">
             <Image
               src={generatedImageUrl}
               alt="Ảnh minh họa outfit"
