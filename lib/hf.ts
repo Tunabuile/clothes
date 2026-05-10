@@ -6,6 +6,8 @@
 const HF_TOKEN = process.env.HUGGINGFACE_TOKEN || "";
 const GROQ_API_KEY = process.env.GROQ_API_KEY || "";
 
+const HF_INFERENCE_BASE = "https://router.huggingface.co/hf-inference/models";
+
 const HF_HEADERS = {
   "Content-Type": "application/json",
   ...(HF_TOKEN && { Authorization: `Bearer ${HF_TOKEN}` }),
@@ -55,7 +57,7 @@ export async function captionImage(imageBase64: string): Promise<string> {
   const binary = Buffer.from(imageBase64, "base64");
 
   const res = await fetch(
-    "https://api-inference.huggingface.co/models/Salesforce/blip-image-captioning-large",
+    `${HF_INFERENCE_BASE}/Salesforce/blip-image-captioning-large`,
     {
       method: "POST",
       headers: {
@@ -79,7 +81,7 @@ export async function captionImage(imageBase64: string): Promise<string> {
 
 export async function generateImage(prompt: string): Promise<string> {
   const res = await fetch(
-    "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0",
+    `${HF_INFERENCE_BASE}/stabilityai/stable-diffusion-xl-base-1.0`,
     {
       method: "POST",
       headers: HF_HEADERS,

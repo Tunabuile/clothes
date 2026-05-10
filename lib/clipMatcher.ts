@@ -5,13 +5,16 @@
  */
 
 const HF_TOKEN = process.env.HUGGINGFACE_TOKEN || "";
-const CLIP_API = "https://api-inference.huggingface.co/models/openai/clip-vit-base-patch32";
+const CLIP_API = "https://router.huggingface.co/hf-inference/models/openai/clip-vit-base-patch32";
 
 // Headers chung
 function hfHeaders() {
+  if (!HF_TOKEN) {
+    throw new Error("Thiếu HUGGINGFACE_TOKEN (Hugging Face Access Token)");
+  }
   return {
     "Content-Type": "application/json",
-    ...(HF_TOKEN && { Authorization: `Bearer ${HF_TOKEN}` }),
+    Authorization: `Bearer ${HF_TOKEN}`,
   };
 }
 

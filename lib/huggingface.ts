@@ -1,11 +1,14 @@
 const HF_TOKEN = process.env.HUGGINGFACE_TOKEN || "";
 const HF_TEXT_MODEL = process.env.HUGGINGFACE_TEXT_MODEL || "google/flan-t5-small";
-const HF_TEXT_API = `https://api-inference.huggingface.co/models/${HF_TEXT_MODEL}`;
+const HF_TEXT_API = `https://router.huggingface.co/hf-inference/models/${HF_TEXT_MODEL}`;
 
 function hfHeaders() {
+  if (!HF_TOKEN) {
+    throw new Error("Thiếu HUGGINGFACE_TOKEN (Hugging Face Access Token)");
+  }
   return {
     "Content-Type": "application/json",
-    ...(HF_TOKEN && { Authorization: `Bearer ${HF_TOKEN}` }),
+    Authorization: `Bearer ${HF_TOKEN}`,
   };
 }
 
@@ -30,7 +33,9 @@ async function generateText(
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`Hugging Face text error ${response.status}: ${errorText}`);
+    throw new Error(
+      `Hugging Face text error ${response.status}: ${errorText.slice(0, 400)}`
+    );
   }
 
   const data = await response.json();
