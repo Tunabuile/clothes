@@ -6,15 +6,15 @@ export async function POST(req: NextRequest) {
     const { personImageBase64, clothImageBase64, height, weight, userRequest } =
       await req.json();
 
-    if (!personImageBase64 || !clothImageBase64) {
+    if (!clothImageBase64) {
       return NextResponse.json(
-        { error: "Cần cả ảnh người và ảnh quần áo" },
+        { error: "Cần ảnh quần áo" },
         { status: 400 }
       );
     }
 
     const resultText = await describeOutfit(
-      personImageBase64,
+      personImageBase64 || "",
       clothImageBase64,
       Number(height || 170),
       Number(weight || 60),

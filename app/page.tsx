@@ -119,8 +119,8 @@ export default function Home() {
       const selectedImage = clothImages.find((img) => img.id === selectedClothId);
       const targetBase64 = clothItem?.imageBase64 || clothBase64 || selectedImage?.base64;
       const targetMime = clothItem?.imageBase64 ? clothMime : selectedImage?.mimeType || clothMime;
-      if (!personBase64 || !targetBase64) {
-        setError("Cần cả ảnh người và ảnh quần áo!");
+      if (!targetBase64) {
+        setError("Cần ảnh quần áo!");
         return;
       }
 
@@ -134,7 +134,7 @@ export default function Home() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            personImageBase64: personBase64,
+            personImageBase64: personBase64 || "",
             clothImageBase64: targetBase64,
             height,
             weight,
@@ -320,8 +320,8 @@ export default function Home() {
             {/* Cột trái: Upload + Body */}
             <div className="flex flex-col gap-5 lg:col-span-1">
               <ImageUploader
-                label="📸 Ảnh của bạn"
-                hint="Đứng thẳng, mặc đồ ôm sát để AI chính xác hơn"
+                label="📸 Ảnh của bạn (tuỳ chọn)"
+                hint="Nếu có ảnh, AI tư vấn vừa vặn & dáng người tốt hơn"
                 previewUrl={personPreview}
                 onImageChange={(b64, _, preview) => {
                   setPersonBase64(b64);
