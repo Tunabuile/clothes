@@ -412,7 +412,7 @@ export default function Home() {
               <div className="flex flex-col gap-2">
                 <button
                   onClick={() => handleTryOn()}
-                  disabled={!personBase64 || !clothBase64 || isProcessing}
+                  disabled={!clothBase64 || isProcessing}
                   className="flex items-center justify-center gap-2 rounded-2xl bg-violet-600 py-3.5 text-sm font-semibold text-white shadow-lg shadow-violet-200 hover:bg-violet-700 disabled:opacity-40 disabled:cursor-not-allowed transition"
                 >
                   <Wand2 size={16} />
