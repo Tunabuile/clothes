@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { describeOutfit } from "@/lib/huggingface";
+import { captionImage, generateText } from "@/lib/huggingface";
 
 export async function POST(req: NextRequest) {
   try {
@@ -13,15 +13,39 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const resultText = await describeOutfit(
-      personImageBase64 || "",
-      clothImageBase64,
-      Number(height || 170),
-      Number(weight || 60),
-      userRequest || ""
-    );
+    let personDesc = "Không có thông tin";
+    if (personImageBase64) {
+      try {
+        personDesc = await captionImage(personImageBase64);
+      } catch (e) {
+        console.error("Caption person error:", e);
+      }
+    }
 
-    return NextResponse.json({ success: true, resultText });
+    let clothDesc = "quần áo";
+    if (clothImageBase64) {
+      try {
+        clothDesc = await captionImage(clothImageBase64);
+      } catch (e) {
+        console.error("Caption cloth error:", e);
+      }
+    }
+
+    const prompt = `Bạn là stylist AI chuyên nghiệp. Dưới đây là thông tin nhận diện được từ ảnh:
+- Người mặc: "${personDesc}", cao ${height}cm, nặng ${weight}kg.
+- Quần áo muốn phối: "${clothDesc}".
+- Yêu cầu thêm: "${userRequest || "Không có"}".
+
+Hãy tư vấn phối đồ BẰNG TIẾNG VIỆT, tập trung vào:
+- Phong cách outfit phù hợp với món đồ "${clothDesc}"
+- Gợi ý phối màu và chất liệu để tôn dáng
+- Phụ kiện đi kèm
+(Viết ngắn gọn, dễ hiểu, KHÔNG dùng format JSON)`;
+
+    const resultText = await generateText(prompt, 300);
+
+    // Trả về kèm clothDesc để lúc tạo ảnh có thể dùng lại làm prompt
+    return NextResponse.json({ success: true, resultText, clothDesc, personDesc });
   } catch (error) {
     console.error("Describe outfit error:", error);
     return NextResponse.json(

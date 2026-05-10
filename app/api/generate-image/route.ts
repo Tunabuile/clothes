@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { generateImage } from "@/lib/huggingface";
+import { generateImage, generateText } from "@/lib/huggingface";
 
 export async function POST(req: NextRequest) {
   try {
@@ -8,14 +8,32 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Cần nhập mô tả" }, { status: 400 });
     }
 
+    // AI sinh ảnh (FLUX) chỉ hiểu tiếng Anh tốt. Prompt hiện tại là tiếng Việt từ TryOnResult.
+    // Chúng ta cần dùng generateText để dịch và tối ưu nó thành prompt vẽ ảnh tiếng Anh.
+    const translatePrompt = `You are an expert prompt engineer for FLUX image model.
+Translate and enhance the following Vietnamese fashion description into a high-quality ENGLISH image generation prompt.
+Ensure the prompt focuses on the person, the outfit, the fit, and the colors.
+DO NOT include any conversational text, just return the english prompt.
+
+Vietnamese description: "${prompt}"`;
+
+    let englishPrompt = prompt;
+    try {
+      englishPrompt = await generateText(translatePrompt, 200);
+      // Xóa các dấu ngoặc kép bọc ngoài nếu AI trả về
+      englishPrompt = englishPrompt.replace(/^"|"$/g, '').trim();
+    } catch (e) {
+      console.error("Translation failed, using original prompt", e);
+    }
+
     const styleMap: Record<string, string> = {
-      realistic: "photorealistic fashion photography, studio lighting, white background",
-      anime: "anime style fashion illustration, vibrant colors",
+      realistic: "photorealistic full body fashion photography, 8k resolution, studio lighting, hyperdetailed, elegant, highly detailed face",
+      anime: "anime style fashion illustration, vibrant colors, highly detailed",
       sketch: "fashion sketch, pencil drawing, designer illustration",
       watercolor: "watercolor fashion illustration, soft colors",
     };
 
-    const fullPrompt = `${prompt}, ${styleMap[style] || styleMap.realistic}, centered, high quality`;
+    const fullPrompt = `${englishPrompt}, ${styleMap[style] || styleMap.realistic}`;
 
     const imageBase64 = await generateImage(fullPrompt);
 
