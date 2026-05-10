@@ -55,6 +55,7 @@ export default function Home() {
   // Thông số cơ thể
   const [height, setHeight] = useState(170);
   const [weight, setWeight] = useState(60);
+  const [gender, setGender] = useState("Nam");
 
   // Kết quả try-on
   const [resultText, setResultText] = useState("");
@@ -140,6 +141,7 @@ export default function Home() {
             clothImageBase64: targetBase64,
             height,
             weight,
+            gender,
             userRequest,
           }),
         });
@@ -186,7 +188,7 @@ export default function Home() {
       const res = await fetch("/api/generate-image", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt, style: "realistic", aspectRatio: "1:1", personDesc, clothDesc }),
+        body: JSON.stringify({ prompt, style: "realistic", aspectRatio: "1:1", personDesc, clothDesc, gender }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Lỗi tạo ảnh");
@@ -343,6 +345,20 @@ export default function Home() {
                   else setWeight(val);
                 }}
               />
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Giới tính
+                </label>
+                <select
+                  value={gender}
+                  onChange={(e) => setGender(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-violet-500 bg-white"
+                >
+                  <option value="Nam">Nam</option>
+                  <option value="Nữ">Nữ</option>
+                </select>
+              </div>
             </div>
 
             {/* Cột giữa: Ảnh đồ + nút */}

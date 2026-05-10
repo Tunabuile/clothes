@@ -3,7 +3,7 @@ import { captionImage, generateText } from "@/lib/huggingface";
 
 export async function POST(req: NextRequest) {
   try {
-    const { personImageBase64, clothImageBase64, height, weight, userRequest } =
+    const { personImageBase64, clothImageBase64, height, weight, gender, userRequest } =
       await req.json();
 
     if (!clothImageBase64) {
@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
     }
 
     const prompt = `Bạn là stylist AI chuyên nghiệp. Dưới đây là thông tin nhận diện được từ ảnh:
-- Người mặc: "${personDesc}", cao ${height}cm, nặng ${weight}kg.
+- Người mặc: "${personDesc}", Giới tính: ${gender || "Nam"}, cao ${height}cm, nặng ${weight}kg.
 - Quần áo muốn phối: "${clothDesc}".
 - Yêu cầu thêm: "${userRequest || "Không có"}".
 

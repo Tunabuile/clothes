@@ -3,7 +3,7 @@ import { generateImage, generateText } from "@/lib/huggingface";
 
 export async function POST(req: NextRequest) {
   try {
-    const { prompt, style, personDesc, clothDesc } = await req.json();
+    const { prompt, style, personDesc, clothDesc, gender } = await req.json();
     if (!prompt) {
       return NextResponse.json({ error: "Cần nhập mô tả" }, { status: 400 });
     }
@@ -13,7 +13,8 @@ export async function POST(req: NextRequest) {
     const translatePrompt = `You are an expert prompt engineer for FLUX image model.
 Translate and enhance the following Vietnamese fashion description into a high-quality ENGLISH image generation prompt.
 IMPORTANT REQUIREMENTS:
-${personDesc && personDesc !== "Không có thông tin" ? `- The person MUST be described as: "${personDesc}"` : "- The person MUST be a man or woman (choose appropriately)."}
+${gender ? `- The person MUST be drawn as: ${gender === "Nam" ? "A MAN (Male)" : "A WOMAN (Female)"}. THIS IS STRICTLY REQUIRED.` : "- The person MUST be drawn as a MAN (Male)."}
+${personDesc && personDesc !== "Không có thông tin" ? `- The person MUST also match this description: "${personDesc}"` : ""}
 ${clothDesc && clothDesc !== "quần áo" ? `- The clothing MUST be described exactly as: "${clothDesc}"` : ""}
 
 Ensure the prompt focuses on the person, the outfit, the fit, and the colors.
