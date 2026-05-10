@@ -16,8 +16,34 @@ function hfHeaders() {
 
 async function generateText(
   prompt: string,
-  maxTokens = 180
+  maxTokens = 400
 ): Promise<string> {
+  // Ưu tiên dùng Groq nếu có (vì model 70B thông minh hơn rất nhiều so với 1.5B)
+  if (process.env.GROQ_API_KEY) {
+    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${process.env.GROQ_API_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: "llama-3.3-70b-versatile",
+        messages: [
+          { role: "system", content: "You are a helpful assistant." },
+          { role: "user", content: prompt }
+        ],
+        max_tokens: maxTokens,
+        temperature: 0.7,
+      })
+    });
+    if (res.ok) {
+      const data = await res.json();
+      const content = data?.choices?.[0]?.message?.content;
+      if (typeof content === "string") return content;
+    }
+  }
+
+  // Fallback về Hugging Face
   const response = await fetch(HF_CHAT_API, {
     method: "POST",
     headers: hfHeaders(),
