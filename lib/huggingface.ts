@@ -100,9 +100,42 @@ export function extractJSON(text: string): Record<string, unknown> {
 
 export async function captionImage(imageBase64: string): Promise<string> {
   const base64Data = imageBase64.includes(",") ? imageBase64.split(",")[1] : imageBase64;
-  const binary = Buffer.from(base64Data, "base64");
+  
+  try {
+    const response = await fetch(
+      "https://api-inference.huggingface.co/models/Qwen/Qwen2.5-VL-7B-Instruct/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: hfHeaders().Authorization,
+        },
+        body: JSON.stringify({
+          model: "Qwen/Qwen2.5-VL-7B-Instruct",
+          messages: [
+            {
+              role: "user",
+              content: [
+                { type: "text", text: "Identify if there is a person in this image and describe their gender (man/woman) and their clothing. If it is just clothing, describe the clothing item in detail. Keep it short. Use English." },
+                { type: "image_url", image_url: { url: `data:image/jpeg;base64,${base64Data}` } }
+              ]
+            }
+          ],
+          max_tokens: 150
+        }),
+      }
+    );
 
-  const response = await fetch(
+    if (response.ok) {
+      const data = await response.json();
+      return data.choices?.[0]?.message?.content || "Clothing item";
+    }
+  } catch (e) {
+    console.error("Qwen VL fetch error", e);
+  }
+
+  const binary = Buffer.from(base64Data, "base64");
+  const fallbackRes = await fetch(
     `${HF_INFERENCE_BASE}/Salesforce/blip-image-captioning-large`,
     {
       method: "POST",
@@ -114,13 +147,13 @@ export async function captionImage(imageBase64: string): Promise<string> {
     }
   );
 
-  if (!response.ok) {
-    const err = await response.text();
-    throw new Error(`HF Caption error ${response.status}: ${err.slice(0, 400)}`);
+  if (!fallbackRes.ok) {
+    const err = await fallbackRes.text();
+    throw new Error(`HF Caption error ${fallbackRes.status}: ${err.slice(0, 400)}`);
   }
 
-  const data = await response.json();
-  return data?.[0]?.generated_text || "";
+  const data = await fallbackRes.json();
+  return data?.[0]?.generated_text || "Không có thông tin";
 }
 
 export async function generateImage(prompt: string): Promise<string> {
