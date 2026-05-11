@@ -1,0 +1,6 @@
+{
+  "rootDirectory": "clothes",
+  "buildCommand": "next build",
+  "outputDirectory": ".next",
+  "framework": "nextjs"
+}
