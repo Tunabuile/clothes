@@ -56,8 +56,9 @@ export async function generateText(prompt: string): Promise<string> {
 export async function captionImage(imageBase64: string): Promise<string> {
   const binary = Buffer.from(imageBase64, "base64");
 
+  // Gọi trực tiếp API inference (không qua router vì blip không được router hỗ trợ)
   const res = await fetch(
-    `${HF_INFERENCE_BASE}/Salesforce/blip-image-captioning-large`,
+    "https://api-inference.huggingface.co/models/Salesforce/blip-image-captioning-large",
     {
       method: "POST",
       headers: {
