@@ -173,3 +173,63 @@ export async function getStyleProfile(userId = "default") {
     .single();
   return data;
 }
+
+// ─── Ý TƯỞNG TÁI CHẾ CỘNG ĐỒNG (community_recycle_ideas) ─────
+
+export interface CommunityRecycleRow {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  difficulty: string;
+  time_estimate: string;
+  materials_needed: string[];
+  clothing_types: string[];
+  tags: string[];
+  search_query: string;
+  tutorial_url: string | null;
+  tutorial_label: string | null;
+  likes: number;
+  created_at: string;
+}
+
+export type CommunityRecycleInsert = {
+  title: string;
+  description: string;
+  category: string;
+  difficulty: string;
+  time_estimate: string;
+  materials_needed: string[];
+  clothing_types: string[];
+  tags: string[];
+  search_query: string;
+  tutorial_url?: string | null;
+  tutorial_label?: string | null;
+};
+
+export async function listCommunityRecycleIdeas(): Promise<CommunityRecycleRow[]> {
+  const { data, error } = await db()
+    .from("community_recycle_ideas")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(200);
+  if (error) throw new Error(error.message);
+  return (data || []) as CommunityRecycleRow[];
+}
+
+export async function insertCommunityRecycleIdea(
+  row: CommunityRecycleInsert
+): Promise<CommunityRecycleRow> {
+  const { data, error } = await db()
+    .from("community_recycle_ideas")
+    .insert({
+      ...row,
+      tutorial_url: row.tutorial_url ?? null,
+      tutorial_label: row.tutorial_label ?? null,
+      likes: 0,
+    })
+    .select("*")
+    .single();
+  if (error) throw new Error(error.message);
+  return data as CommunityRecycleRow;
+}

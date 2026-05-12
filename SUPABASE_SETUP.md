@@ -64,6 +64,34 @@ create or replace function increment_try_on_count(item_id text)
 returns void as $$
   update clothing_items set try_on_count = try_on_count + 1 where id = item_id;
 $$ language sql;
+
+-- Ý tưởng tái chế cộng đồng (mọi người xem & đăng qua app)
+create table community_recycle_ideas (
+  id uuid primary key default gen_random_uuid(),
+  title text not null check (char_length(trim(title)) >= 1 and char_length(title) <= 200),
+  description text not null check (char_length(description) <= 8000),
+  category text not null check (category in ('Tái chế', 'Upcycle')),
+  difficulty text not null,
+  time_estimate text not null default '30 phút',
+  materials_needed text[] not null default '{}',
+  clothing_types text[] not null default '{}',
+  tags text[] not null default '{}',
+  search_query text not null,
+  tutorial_url text,
+  tutorial_label text,
+  likes integer not null default 0,
+  created_at timestamptz not null default now()
+);
+
+alter table community_recycle_ideas enable row level security;
+
+create policy "read community recycle ideas"
+  on community_recycle_ideas for select
+  using (true);
+
+create policy "insert community recycle ideas"
+  on community_recycle_ideas for insert
+  with check (true);
 ```
 
 ## 4. Tạo Storage bucket
