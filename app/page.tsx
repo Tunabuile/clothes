@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Wand2, Plus, Shirt, Sparkles, ImagePlus, Brain, User, Zap, Bot, Recycle } from "lucide-react";
 import ImageUploader from "@/components/ImageUploader";
 import MultiImageUploader, { UploadedImage } from "@/components/MultiImageUploader";
@@ -35,22 +35,31 @@ export default function Home() {
   const [clothPreview, setClothPreview] = useState("");
   const [clothMime, setClothMime] = useState("image/jpeg");
 
-  // Sync clothImages[0] → clothBase64 (cho try-on)
   const handleClothImagesChange = (imgs: UploadedImage[]) => {
     setClothImages(imgs);
-    const first = imgs[0] || null;
-    setSelectedClothId(first?.id || null);
+  };
 
-    if (first) {
-      setClothBase64(first.base64);
-      setClothPreview(first.previewUrl);
-      setClothMime(first.mimeType);
-    } else {
+  // Giữ đúng món đang chọn (viền tím) khi thêm/xóa ảnh — trước đây luôn nhảy về ảnh đầu tiên nên dễ lệch với ý người dùng
+  useEffect(() => {
+    if (clothImages.length === 0) {
+      setSelectedClothId(null);
       setClothBase64("");
       setClothPreview("");
       setClothMime("image/jpeg");
+      return;
     }
-  };
+    const stillSelected =
+      selectedClothId &&
+      clothImages.some((img) => img.id === selectedClothId);
+    const id = stillSelected ? selectedClothId : clothImages[0].id;
+    if (!stillSelected) {
+      setSelectedClothId(id);
+    }
+    const img = clothImages.find((i) => i.id === id) ?? clothImages[0];
+    setClothBase64(img.base64);
+    setClothPreview(img.previewUrl);
+    setClothMime(img.mimeType);
+  }, [clothImages, selectedClothId]);
 
   // Thông số cơ thể
   const [height, setHeight] = useState(170);
@@ -120,7 +129,10 @@ export default function Home() {
   const handleTryOn = useCallback(
     async (clothItem?: ClothingItem) => {
       const selectedImage = clothImages.find((img) => img.id === selectedClothId);
-      const targetBase64 = clothItem?.imageBase64 || clothBase64 || selectedImage?.base64;
+      const targetBase64 =
+        clothItem?.imageBase64 ??
+        selectedImage?.base64 ??
+        clothBase64;
       const targetMime = clothItem?.imageBase64 ? clothMime : selectedImage?.mimeType || clothMime;
       if (!targetBase64) {
         setError("Cần ảnh quần áo!");
@@ -377,16 +389,17 @@ export default function Home() {
                     <p className="mb-2 text-sm font-semibold text-zinc-700">
                       Chọn món quần áo để AI nhận diện và thử
                     </p>
+                    <p className="mb-2 text-xs text-zinc-500">
+                      AI chỉ xử lý ảnh có <span className="font-semibold text-violet-600">viền tím</span> —
+                      không phải ảnh đầu tiên ở ô upload phía trên.
+                    </p>
                     <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
                       {clothImages.map((img) => (
                         <button
                           key={img.id}
-                          onClick={() => {
-                            setSelectedClothId(img.id);
-                            setClothBase64(img.base64);
-                            setClothPreview(img.previewUrl);
-                            setClothMime(img.mimeType);
-                          }}
+                          type="button"
+                          title={img.name || "Quần áo"}
+                          onClick={() => setSelectedClothId(img.id)}
                           className={cn(
                             "relative overflow-hidden rounded-2xl border bg-zinc-50 transition",
                             selectedClothId === img.id
@@ -396,12 +409,9 @@ export default function Home() {
                         >
                           <img
                             src={img.previewUrl}
-                            alt={img.name || "cloth"}
+                            alt={img.name || "Quần áo"}
                             className="h-20 w-full object-contain"
                           />
-                          <span className="absolute left-2 top-2 rounded-full bg-white/90 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-zinc-600">
-                            {img.name ? img.name.replace(/\..+$/, "") : "Món"}
-                          </span>
                         </button>
                       ))}
                     </div>
