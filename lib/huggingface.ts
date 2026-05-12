@@ -4,6 +4,16 @@ const HF_TEXT_MODEL =
 const HF_CHAT_API = "https://router.huggingface.co/v1/chat/completions";
 const HF_INFERENCE_BASE = "https://router.huggingface.co/hf-inference/models";
 
+const CAPTION_VISION_PROMPT =
+  "Identify if there is a person in this image and describe their gender (man/woman) and their clothing. If it is just clothing, describe the clothing item in detail. Keep it short. Use English.";
+
+/** Router chat model id; có thể thêm hậu tố :provider (ví dụ :hyperbolic) nếu cần. */
+const HF_VISION_MODEL =
+  process.env.HUGGINGFACE_VISION_MODEL ?? "Qwen/Qwen2.5-VL-7B-Instruct";
+
+const GROQ_VISION_MODEL =
+  process.env.GROQ_VISION_MODEL ?? "meta-llama/llama-4-scout-17b-16e-instruct";
+
 function hfHeaders() {
   if (!HF_TOKEN) {
     throw new Error("Thiếu HUGGINGFACE_TOKEN (Hugging Face Access Token)");
@@ -99,62 +109,129 @@ export function extractJSON(text: string): Record<string, unknown> {
 }
 
 export async function captionImage(imageBase64: string): Promise<string> {
-  const base64Data = imageBase64.includes(",") ? imageBase64.split(",")[1] : imageBase64;
-  
-  try {
-    const response = await fetch(
-      "https://api-inference.huggingface.co/models/Qwen/Qwen2.5-VL-7B-Instruct/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: hfHeaders().Authorization,
-        },
-        body: JSON.stringify({
-          model: "Qwen/Qwen2.5-VL-7B-Instruct",
-          messages: [
-            {
-              role: "user",
-              content: [
-                { type: "text", text: "Identify if there is a person in this image and describe their gender (man/woman) and their clothing. If it is just clothing, describe the clothing item in detail. Keep it short. Use English." },
-                { type: "image_url", image_url: { url: `data:image/jpeg;base64,${base64Data}` } }
-              ]
-            }
-          ],
-          max_tokens: 150
-        }),
-      }
-    );
+  const base64Data = imageBase64.includes(",")
+    ? imageBase64.split(",")[1]
+    : imageBase64;
+  const dataUrl = `data:image/jpeg;base64,${base64Data}`;
 
-    if (response.ok) {
-      const data = await response.json();
-      return data.choices?.[0]?.message?.content || "Clothing item";
+  const visionMessages = [
+    {
+      role: "user" as const,
+      content: [
+        { type: "text" as const, text: CAPTION_VISION_PROMPT },
+        { type: "image_url" as const, image_url: { url: dataUrl } },
+      ],
+    },
+  ];
+
+  if (process.env.GROQ_API_KEY) {
+    try {
+      const response = await fetch(
+        "https://api.groq.com/openai/v1/chat/completions",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+          },
+          body: JSON.stringify({
+            model: GROQ_VISION_MODEL,
+            messages: visionMessages,
+            max_tokens: 150,
+            temperature: 0.3,
+          }),
+        }
+      );
+      if (response.ok) {
+        const data = await response.json();
+        const content = data?.choices?.[0]?.message?.content;
+        if (typeof content === "string" && content.trim()) {
+          return content.trim();
+        }
+      } else {
+        const err = await response.text();
+        console.error("Groq vision caption HTTP error:", response.status, err.slice(0, 300));
+      }
+    } catch (e) {
+      console.error("Groq vision caption error", e);
     }
-  } catch (e) {
-    console.error("Qwen VL fetch error", e);
   }
 
-  // Fallback: gọi trực tiếp API inference (không qua router vì blip không được router hỗ trợ)
-  const binary = Buffer.from(base64Data, "base64");
-  const fallbackRes = await fetch(
-    "https://api-inference.huggingface.co/models/Salesforce/blip-image-captioning-large",
-    {
+  if (HF_TOKEN) {
+    try {
+      const response = await fetch(HF_CHAT_API, {
+        method: "POST",
+        headers: hfHeaders(),
+        body: JSON.stringify({
+          model: HF_VISION_MODEL,
+          messages: visionMessages,
+          max_tokens: 150,
+        }),
+      });
+      if (response.ok) {
+        const data = await response.json();
+        const content = data?.choices?.[0]?.message?.content;
+        if (typeof content === "string" && content.trim()) {
+          return content.trim();
+        }
+      } else {
+        const err = await response.text();
+        console.error("HF vision caption HTTP error:", response.status, err.slice(0, 300));
+      }
+    } catch (e) {
+      console.error("HF vision (Qwen) caption error", e);
+    }
+
+    const blipUrl = `${HF_INFERENCE_BASE}/Salesforce/blip-image-captioning-large`;
+
+    try {
+      const jsonRes = await fetch(blipUrl, {
+        method: "POST",
+        headers: hfHeaders(),
+        body: JSON.stringify({ inputs: dataUrl }),
+      });
+      if (jsonRes.ok) {
+        const data = await jsonRes.json();
+        const text = Array.isArray(data)
+          ? data[0]?.generated_text
+          : data?.generated_text;
+        if (typeof text === "string" && text.trim()) {
+          return text.trim();
+        }
+      }
+    } catch (e) {
+      console.error("BLIP (JSON) caption error", e);
+    }
+
+    const binary = Buffer.from(base64Data, "base64");
+    const octetRes = await fetch(blipUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/octet-stream",
         Authorization: hfHeaders().Authorization,
       },
       body: binary,
-    }
-  );
+    });
 
-  if (!fallbackRes.ok) {
-    const err = await fallbackRes.text();
-    throw new Error(`HF Caption error ${fallbackRes.status}: ${err.slice(0, 400)}`);
+    if (octetRes.ok) {
+      const data = await octetRes.json();
+      const text = Array.isArray(data)
+        ? data[0]?.generated_text
+        : data?.generated_text;
+      if (typeof text === "string" && text.trim()) {
+        return text.trim();
+      }
+    } else {
+      const err = await octetRes.text();
+      throw new Error(
+        `HF Caption error ${octetRes.status}: ${err.slice(0, 400)}`
+      );
+    }
   }
 
-  const data = await fallbackRes.json();
-  return data?.[0]?.generated_text || "Không có thông tin";
+  throw new Error(
+    "Không tạo được mô tả ảnh: cần GROQ_API_KEY (Groq vision) hoặc HUGGINGFACE_TOKEN. API cũ api-inference.huggingface.co đã ngừng — dùng router HF hoặc Groq."
+  );
 }
 
 export async function generateImage(prompt: string): Promise<string> {
