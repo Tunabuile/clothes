@@ -1,27 +1,22 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import { Wand2, Plus, Shirt, Sparkles, ImagePlus, Brain, User, Zap, Bot, Recycle, Palette } from "lucide-react";
+import { Wand2, Plus, Shirt, Sparkles, ImagePlus, Recycle, Palette, Trash2, RotateCcw } from "lucide-react";
 import ImageUploader from "@/components/ImageUploader";
 import MultiImageUploader, { UploadedImage } from "@/components/MultiImageUploader";
 import BodyForm from "@/components/BodyForm";
 import ClothingCard from "@/components/ClothingCard";
 import TryOnResult from "@/components/TryOnResult";
 import GenerateImageModal from "@/components/GenerateImageModal";
-import OutfitSuggestion from "@/components/OutfitSuggestion";
-import AIStyleProfile from "@/components/AIStyleProfile";
-import CLIPMatcher from "@/components/CLIPMatcher";
-import AutoLearning from "@/components/AutoLearning";
-import LabelScanner from "@/components/LabelScanner";
 import RecycleHub from "@/components/RecycleHub";
 import DreaminaStudio from "@/components/DreaminaStudio";
 import { ClothingItem } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-type Tab = "tryon" | "closet" | "stylist" | "profile" | "clip" | "auto" | "recycle" | "studio";
+type Tab = "tryon" | "closet" | "studio" | "recycle";
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<Tab>("tryon");
+  const [activeTab, setActiveTab] = useState<Tab>("studio");
 
   // Ảnh người dùng
   const [personBase64, setPersonBase64] = useState("");
@@ -40,7 +35,7 @@ export default function Home() {
     setClothImages(imgs);
   };
 
-  // Giữ đúng món đang chọn (viền tím) khi thêm/xóa ảnh — trước đây luôn nhảy về ảnh đầu tiên nên dễ lệch với ý người dùng
+  // Giữ đúng món đang chọn (viền tím) khi thêm/xóa ảnh
   useEffect(() => {
     if (clothImages.length === 0) {
       setSelectedClothId(null);
@@ -77,14 +72,14 @@ export default function Home() {
   const [error, setError] = useState("");
   const [userRequest, setUserRequest] = useState("");
 
-  // Tủ đồ (lưu local state, sau này kết nối Supabase)
+  // Tủ đồ
   const [closet, setCloset] = useState<ClothingItem[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   // Modal tạo ảnh AI
   const [showGenerateModal, setShowGenerateModal] = useState(false);
 
-  // Thêm đồ vào tủ (có Gemini phân tích) — lưu tất cả ảnh đã upload
+  // Thêm đồ vào tủ
   const handleAddToCloset = useCallback(async () => {
     const targets = clothImages.length > 0
       ? clothImages
@@ -120,7 +115,7 @@ export default function Home() {
       }
       setActiveTab("closet");
     } catch {
-      setError("Không thể phân tích ảnh. Kiểm tra GEMINI_API_KEY.");
+      setError("Không thể phân tích ảnh.");
     } finally {
       setIsAnalyzing(false);
     }
@@ -166,7 +161,6 @@ export default function Home() {
         setPersonDesc(data.personDesc || "");
         setClothDesc(data.clothDesc || "");
 
-        // Cập nhật tryOnCount nếu từ tủ đồ
         if (clothItem) {
           setCloset((prev) =>
             prev.map((c) =>
@@ -213,6 +207,12 @@ export default function Home() {
     }
   }, [resultText, userRequest, personDesc, clothDesc]);
 
+  const handleClearCloset = () => {
+    if (confirm("Xóa tất cả đồ trong tủ?")) {
+      setCloset([]);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-violet-50 via-white to-pink-50">
       {/* Modal tạo ảnh AI */}
@@ -231,6 +231,7 @@ export default function Home() {
           }}
         />
       )}
+
       {/* Header */}
       <header className="sticky top-0 z-10 border-b border-zinc-100 bg-white/80 backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-4">
@@ -244,109 +245,68 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Tabs (Chỉ hiện trên màn hình lớn) */}
-          <div className="hidden sm:block w-full overflow-x-auto">
-            <div className="flex w-max sm:w-auto sm:justify-end rounded-xl sm:rounded-none sm:border-0 sm:bg-transparent border border-zinc-200 bg-zinc-50 p-1 sm:p-0 gap-1 sm:gap-2">
-            <button
-              onClick={() => setActiveTab("tryon")}
-              className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-medium transition sm:px-4 sm:text-sm ${
-                activeTab === "tryon"
-                  ? "bg-white text-violet-700 shadow-sm"
-                  : "text-zinc-500 hover:text-zinc-700"
-              }`}
-            >
-              <Wand2 size={14} />
-              Phối đồ thông minh
-            </button>
-            <button
-              onClick={() => setActiveTab("closet")}
-              className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-medium transition sm:px-4 sm:text-sm ${
-                activeTab === "closet"
-                  ? "bg-white text-violet-700 shadow-sm"
-                  : "text-zinc-500 hover:text-zinc-700"
-              }`}
-            >
-              <Shirt size={14} />
-              Tủ đồ
-              {closet.length > 0 && (
-                <span className="rounded-full bg-violet-600 px-1.5 py-0.5 text-xs text-white">
-                  {closet.length}
-                </span>
-              )}
-            </button>
-            <button
-              onClick={() => setActiveTab("stylist")}
-              className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-medium transition sm:px-4 sm:text-sm ${
-                activeTab === "stylist"
-                  ? "bg-white text-violet-700 shadow-sm"
-                  : "text-zinc-500 hover:text-zinc-700"
-              }`}
-            >
-              <Brain size={14} />
-              Phối đồ AI
-            </button>
-            <button
-              onClick={() => setActiveTab("profile")}
-              className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-medium transition sm:px-4 sm:text-sm ${
-                activeTab === "profile"
-                  ? "bg-white text-violet-700 shadow-sm"
-                  : "text-zinc-500 hover:text-zinc-700"
-              }`}
-            >
-              <User size={14} />
-              Style AI
-            </button>
-            <button
-              onClick={() => setActiveTab("clip")}
-              className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-medium transition sm:px-4 sm:text-sm ${
-                activeTab === "clip"
-                  ? "bg-white text-blue-700 shadow-sm"
-                  : "text-zinc-500 hover:text-zinc-700"
-              }`}
-            >
-              <Zap size={14} />
-              CLIP
-            </button>
-            <button
-              onClick={() => setActiveTab("auto")}
-              className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-medium transition sm:px-4 sm:text-sm ${
-                activeTab === "auto"
-                  ? "bg-white text-green-700 shadow-sm"
-                  : "text-zinc-500 hover:text-zinc-700"
-              }`}
-            >
-              <Bot size={14} />
-              Auto AI
-            </button>
-            <button
-              onClick={() => setActiveTab("recycle")}
-              className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-medium transition sm:px-4 sm:text-sm ${
-                activeTab === "recycle"
-                  ? "bg-white text-green-700 shadow-sm"
-                  : "text-zinc-500 hover:text-zinc-700"
-              }`}
-            >
-              <Recycle size={14} />
-              Tái chế
-            </button>
-            <button
-              onClick={() => setActiveTab("studio")}
-              className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-medium transition sm:px-4 sm:text-sm ${
-                activeTab === "studio"
-                  ? "bg-white text-violet-700 shadow-sm"
-                  : "text-zinc-500 hover:text-zinc-700"
-              }`}
-            >
-              <Palette size={14} />
-              Studio
-            </button>
-          </div>
+          {/* Tabs */}
+          <div className="hidden sm:block">
+            <div className="flex gap-1 sm:gap-2">
+              <button
+                onClick={() => setActiveTab("studio")}
+                className={`flex items-center gap-1.5 rounded-lg px-4 py-1.5 text-xs font-medium transition sm:text-sm ${
+                  activeTab === "studio"
+                    ? "bg-violet-600 text-white shadow-md"
+                    : "text-zinc-500 hover:text-zinc-700 hover:bg-zinc-100"
+                }`}
+              >
+                <Palette size={14} />
+                Studio
+              </button>
+              <button
+                onClick={() => setActiveTab("tryon")}
+                className={`flex items-center gap-1.5 rounded-lg px-4 py-1.5 text-xs font-medium transition sm:text-sm ${
+                  activeTab === "tryon"
+                    ? "bg-violet-600 text-white shadow-md"
+                    : "text-zinc-500 hover:text-zinc-700 hover:bg-zinc-100"
+                }`}
+              >
+                <Wand2 size={14} />
+                Phối đồ
+              </button>
+              <button
+                onClick={() => setActiveTab("closet")}
+                className={`flex items-center gap-1.5 rounded-lg px-4 py-1.5 text-xs font-medium transition sm:text-sm ${
+                  activeTab === "closet"
+                    ? "bg-violet-600 text-white shadow-md"
+                    : "text-zinc-500 hover:text-zinc-700 hover:bg-zinc-100"
+                }`}
+              >
+                <Shirt size={14} />
+                Tủ đồ
+                {closet.length > 0 && (
+                  <span className="rounded-full bg-violet-500 px-1.5 py-0.5 text-[10px] text-white">
+                    {closet.length}
+                  </span>
+                )}
+              </button>
+              <button
+                onClick={() => setActiveTab("recycle")}
+                className={`flex items-center gap-1.5 rounded-lg px-4 py-1.5 text-xs font-medium transition sm:text-sm ${
+                  activeTab === "recycle"
+                    ? "bg-violet-600 text-white shadow-md"
+                    : "text-zinc-500 hover:text-zinc-700 hover:bg-zinc-100"
+                }`}
+              >
+                <Recycle size={14} />
+                Tái chế
+              </button>
+            </div>
           </div>
         </div>
       </header>
 
       <main className="mx-auto max-w-6xl px-4 py-5 pb-24 sm:px-6 sm:py-8 sm:pb-8">
-        {/* ===== TAB: PHỐI ĐỒ THÔNG MINH ===== */}
+        {/* ===== TAB: STUDIO ===== */}
+        {activeTab === "studio" && <DreaminaStudio />}
+
+        {/* ===== TAB: PHỐI ĐỒ ===== */}
         {activeTab === "tryon" && (
           <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-3">
             {/* Cột trái: Upload + Body */}
@@ -402,8 +362,7 @@ export default function Home() {
                       Chọn món quần áo để AI nhận diện và thử
                     </p>
                     <p className="mb-2 text-xs text-zinc-500">
-                      AI chỉ xử lý ảnh có <span className="font-semibold text-violet-600">viền tím</span> —
-                      không phải ảnh đầu tiên ở ô upload phía trên.
+                      AI chỉ xử lý ảnh có <span className="font-semibold text-violet-600">viền tím</span>
                     </p>
                     <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
                       {clothImages.map((img) => (
@@ -442,7 +401,6 @@ export default function Home() {
                   />
                 </div>
 
-                {/* Nút tạo ảnh AI */}
                 <button
                   onClick={() => setShowGenerateModal(true)}
                   className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-violet-300 bg-violet-50 py-2.5 text-sm font-medium text-violet-600 hover:bg-violet-100 transition"
@@ -452,7 +410,6 @@ export default function Home() {
                 </button>
               </div>
 
-              {/* Nút actions */}
               <div className="flex flex-col gap-2">
                 <button
                   onClick={() => handleTryOn()}
@@ -509,24 +466,27 @@ export default function Home() {
                   👗 Tủ đồ của bạn
                 </h2>
                 <p className="text-sm text-zinc-400 mt-0.5">
-                  {closet.length} món đồ •{" "}
-                  {closet.filter(
-                    (c) =>
-                      Math.floor(
-                        (Date.now() - new Date(c.addedAt).getTime()) /
-                          (1000 * 60 * 60 * 24)
-                      ) > 90 && c.tryOnCount === 0
-                  ).length}{" "}
-                  món bốc bụi
+                  {closet.length} món đồ
                 </p>
               </div>
-              <button
-                onClick={() => setActiveTab("tryon")}
-                className="flex items-center gap-1.5 rounded-xl bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-700 transition"
-              >
-                <Plus size={14} />
-                Thêm đồ
-              </button>
+              <div className="flex gap-2">
+                {closet.length > 0 && (
+                  <button
+                    onClick={handleClearCloset}
+                    className="flex items-center gap-1.5 rounded-xl border border-red-200 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 transition"
+                  >
+                    <Trash2 size={14} />
+                    Xóa tất cả
+                  </button>
+                )}
+                <button
+                  onClick={() => setActiveTab("tryon")}
+                  className="flex items-center gap-1.5 rounded-xl bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-700 transition"
+                >
+                  <Plus size={14} />
+                  Thêm đồ
+                </button>
+              </div>
             </div>
 
             {closet.length === 0 ? (
@@ -537,7 +497,7 @@ export default function Home() {
                 <div className="text-center">
                   <p className="font-semibold text-zinc-500">Tủ đồ trống</p>
                   <p className="text-sm text-zinc-400 mt-1">
-                    Upload ảnh quần áo và nhấn &quot;Lưu vào tủ đồ&quot; để bắt đầu
+                    Upload ảnh quần áo và nhấn "Lưu vào tủ đồ" để bắt đầu
                   </p>
                 </div>
               </div>
@@ -558,29 +518,7 @@ export default function Home() {
             )}
           </div>
         )}
-        {/* ===== TAB: PHỐI ĐỒ AI ===== */}
-        {activeTab === "stylist" && (
-          <div className="mx-auto max-w-2xl">
-            <div className="mb-6">
-              <h2 className="text-xl font-bold text-zinc-900">🧠 AI Stylist</h2>
-              <p className="text-sm text-zinc-400 mt-0.5">
-                AI nhìn vào tủ đồ của bạn và tư duy phối outfit phù hợp
-              </p>
-            </div>
-            <OutfitSuggestion
-              closet={closet}
-              onTryOutfit={(items) => {
-                // Lấy món đầu tiên để thử đồ, chuyển sang tab tryon
-                if (items[0]) {
-                  setClothBase64(items[0].imageBase64 || "");
-                  setClothPreview(items[0].imageUrl);
-                  setClothMime("image/jpeg");
-                  setActiveTab("tryon");
-                }
-              }}
-            />
-          </div>
-        )}
+
         {/* ===== TAB: TÁI CHẾ ===== */}
         {activeTab === "recycle" && (
           <div>
@@ -593,135 +531,48 @@ export default function Home() {
             <RecycleHub />
           </div>
         )}
-
-        {/* ===== TAB: AUTO LEARNING ===== */}
-        {activeTab === "auto" && (
-          <div className="mx-auto max-w-2xl">
-            <div className="mb-6">
-              <h2 className="text-xl font-bold text-zinc-900">🤖 AI Tự Động Học</h2>
-              <p className="text-sm text-zinc-400 mt-0.5">
-                AI tự crawl ảnh, tự phân tích, tự học xu hướng — không cần user làm gì
-              </p>
-            </div>
-            <AutoLearning />
-          </div>
-        )}
-
-        {/* ===== TAB: CLIP MATCHER ===== */}
-        {activeTab === "clip" && (
-          <div className="mx-auto max-w-2xl">
-            <div className="mb-6">
-              <h2 className="text-xl font-bold text-zinc-900">⚡ CLIP Visual Matcher</h2>
-              <p className="text-sm text-zinc-400 mt-0.5">
-                AI nhìn ảnh thật → tính độ tương thích → chọn combo đẹp nhất
-              </p>
-            </div>
-            <CLIPMatcher
-              closet={closet}
-              onTryOutfit={(items) => {
-                if (items[0]) {
-                  setClothBase64(items[0].imageBase64 || "");
-                  setClothPreview(items[0].imageUrl);
-                  setClothMime("image/jpeg");
-                  setActiveTab("tryon");
-                }
-              }}
-            />
-          </div>
-        )}
-
-        {/* ===== TAB: DREAMINA STUDIO ===== */}
-        {activeTab === "studio" && (
-          <DreaminaStudio />
-        )}
-
-        {/* ===== TAB: AI STYLE PROFILE ===== */}
-        {activeTab === "profile" && (
-          <div className="mx-auto max-w-2xl">
-            <div className="mb-6">
-              <h2 className="text-xl font-bold text-zinc-900">🧠 AI Style Profile</h2>
-              <p className="text-sm text-zinc-400 mt-0.5">
-                AI học từ feedback của bạn và tự cải thiện theo thời gian
-              </p>
-            </div>
-            <AIStyleProfile />
-          </div>
-        )}
       </main>
 
-      {/* ===== BOTTOM NAVIGATION (Chỉ hiện trên Mobile) ===== */}
+      {/* ===== BOTTOM NAV (Mobile) ===== */}
       <nav className="fixed bottom-0 left-0 z-50 w-full border-t border-zinc-200 bg-white/90 backdrop-blur-md sm:hidden pb-safe">
-        <div className="flex items-center gap-1 overflow-x-auto px-3 py-2 scrollbar-hide">
+        <div className="flex items-center justify-around px-3 py-2">
+          <button
+            onClick={() => setActiveTab("studio")}
+            className={`flex flex-col items-center gap-0.5 p-2 transition-colors ${
+              activeTab === "studio" ? "text-violet-700" : "text-zinc-500"
+            }`}
+          >
+            <Palette size={22} />
+            <span className="text-[10px] font-medium">Studio</span>
+          </button>
           <button
             onClick={() => setActiveTab("tryon")}
-            className={`flex flex-col items-center justify-center min-w-[70px] shrink-0 gap-1 rounded-xl p-2 transition-colors ${
-              activeTab === "tryon" ? "bg-violet-50 text-violet-700" : "text-zinc-500 hover:text-zinc-700"
+            className={`flex flex-col items-center gap-0.5 p-2 transition-colors ${
+              activeTab === "tryon" ? "text-violet-700" : "text-zinc-500"
             }`}
           >
-            <Wand2 size={20} />
+            <Wand2 size={22} />
             <span className="text-[10px] font-medium">Phối đồ</span>
           </button>
-          
           <button
             onClick={() => setActiveTab("closet")}
-            className={`relative flex flex-col items-center justify-center min-w-[70px] shrink-0 gap-1 rounded-xl p-2 transition-colors ${
-              activeTab === "closet" ? "bg-violet-50 text-violet-700" : "text-zinc-500 hover:text-zinc-700"
+            className={`relative flex flex-col items-center gap-0.5 p-2 transition-colors ${
+              activeTab === "closet" ? "text-violet-700" : "text-zinc-500"
             }`}
           >
-            <Shirt size={20} />
+            <Shirt size={22} />
             <span className="text-[10px] font-medium">Tủ đồ</span>
             {closet.length > 0 && (
-              <span className="absolute top-1.5 right-3 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white"></span>
+              <span className="absolute top-0 right-0 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white"></span>
             )}
           </button>
-          
-          <button
-            onClick={() => setActiveTab("stylist")}
-            className={`flex flex-col items-center justify-center min-w-[70px] shrink-0 gap-1 rounded-xl p-2 transition-colors ${
-              activeTab === "stylist" ? "bg-violet-50 text-violet-700" : "text-zinc-500 hover:text-zinc-700"
-            }`}
-          >
-            <Brain size={20} />
-            <span className="text-[10px] font-medium">AI Stylist</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab("profile")}
-            className={`flex flex-col items-center justify-center min-w-[70px] shrink-0 gap-1 rounded-xl p-2 transition-colors ${
-              activeTab === "profile" ? "bg-violet-50 text-violet-700" : "text-zinc-500 hover:text-zinc-700"
-            }`}
-          >
-            <User size={20} />
-            <span className="text-[10px] font-medium">Profile AI</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab("clip")}
-            className={`flex flex-col items-center justify-center min-w-[70px] shrink-0 gap-1 rounded-xl p-2 transition-colors ${
-              activeTab === "clip" ? "bg-blue-50 text-blue-700" : "text-zinc-500 hover:text-zinc-700"
-            }`}
-          >
-            <Zap size={20} />
-            <span className="text-[10px] font-medium">CLIP</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab("auto")}
-            className={`flex flex-col items-center justify-center min-w-[70px] shrink-0 gap-1 rounded-xl p-2 transition-colors ${
-              activeTab === "auto" ? "bg-green-50 text-green-700" : "text-zinc-500 hover:text-zinc-700"
-            }`}
-          >
-            <Bot size={20} />
-            <span className="text-[10px] font-medium">Auto AI</span>
-          </button>
-
           <button
             onClick={() => setActiveTab("recycle")}
-            className={`flex flex-col items-center justify-center min-w-[70px] shrink-0 gap-1 rounded-xl p-2 transition-colors ${
-              activeTab === "recycle" ? "bg-green-50 text-green-700" : "text-zinc-500 hover:text-zinc-700"
+            className={`flex flex-col items-center gap-0.5 p-2 transition-colors ${
+              activeTab === "recycle" ? "text-violet-700" : "text-zinc-500"
             }`}
           >
-            <Recycle size={20} />
+            <Recycle size={22} />
             <span className="text-[10px] font-medium">Tái chế</span>
           </button>
         </div>
