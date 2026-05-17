@@ -1,26 +1,24 @@
-const HF_TOKEN = process.env.HUGGINGFACE_TOKEN || "";
-const HF_TEXT_MODEL =
-  process.env.HUGGINGFACE_TEXT_MODEL || "katanemo/Arch-Router-1.5B:hf-inference";
-const HF_CHAT_API = "https://router.huggingface.co/v1/chat/completions";
-const HF_INFERENCE_BASE = "https://router.huggingface.co/hf-inference/models";
+/**
+ * OpenAI (ChatGPT) Integration
+ * Thay thế hoàn toàn HuggingFace và Groq bằng OpenAI API
+ * Dùng key: OPENAI_API_KEY trong .env.local
+ */
 
-const CAPTION_VISION_PROMPT =
-  "Identify if there is a person in this image and describe their gender (man/woman) and their clothing. If it is just clothing, describe the clothing item in detail. Keep it short. Use English.";
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
+const OPENAI_TEXT_MODEL = process.env.OPENAI_TEXT_MODEL || "gpt-4o-mini";
+const OPENAI_VISION_MODEL = process.env.OPENAI_VISION_MODEL || "gpt-4o-mini";
+const OPENAI_IMAGE_MODEL = process.env.OPENAI_IMAGE_MODEL || "dall-e-3";
 
-/** Router chat model id; có thể thêm hậu tố :provider (ví dụ :hyperbolic) nếu cần. */
-const HF_VISION_MODEL =
-  process.env.HUGGINGFACE_VISION_MODEL ?? "Qwen/Qwen2.5-VL-7B-Instruct";
+const OPENAI_CHAT_API = "https://api.openai.com/v1/chat/completions";
+const OPENAI_IMAGE_API = "https://api.openai.com/v1/images/generations";
 
-const GROQ_VISION_MODEL =
-  process.env.GROQ_VISION_MODEL ?? "meta-llama/llama-4-scout-17b-16e-instruct";
-
-function hfHeaders() {
-  if (!HF_TOKEN) {
-    throw new Error("Thiếu HUGGINGFACE_TOKEN (Hugging Face Access Token)");
+function openaiHeaders() {
+  if (!OPENAI_API_KEY) {
+    throw new Error("Thiếu OPENAI_API_KEY trong .env.local");
   }
   return {
     "Content-Type": "application/json",
-    Authorization: `Bearer ${HF_TOKEN}`,
+    Authorization: `Bearer ${OPENAI_API_KEY}`,
   };
 }
 
@@ -28,39 +26,13 @@ async function generateText(
   prompt: string,
   maxTokens = 400
 ): Promise<string> {
-  // Ưu tiên dùng Groq nếu có (vì model 70B thông minh hơn rất nhiều so với 1.5B)
-  if (process.env.GROQ_API_KEY) {
-    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${process.env.GROQ_API_KEY}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        model: "llama-3.3-70b-versatile",
-        messages: [
-          { role: "system", content: "You are a helpful assistant." },
-          { role: "user", content: prompt }
-        ],
-        max_tokens: maxTokens,
-        temperature: 0.7,
-      })
-    });
-    if (res.ok) {
-      const data = await res.json();
-      const content = data?.choices?.[0]?.message?.content;
-      if (typeof content === "string") return content;
-    }
-  }
-
-  // Fallback về Hugging Face
-  const response = await fetch(HF_CHAT_API, {
+  const response = await fetch(OPENAI_CHAT_API, {
     method: "POST",
-    headers: hfHeaders(),
+    headers: openaiHeaders(),
     body: JSON.stringify({
-      model: HF_TEXT_MODEL,
+      model: OPENAI_TEXT_MODEL,
       messages: [
-        { role: "system", content: "You are a helpful assistant." },
+        { role: "system", content: "You are a helpful fashion assistant." },
         { role: "user", content: prompt },
       ],
       max_tokens: maxTokens,
@@ -71,14 +43,14 @@ async function generateText(
   if (!response.ok) {
     const errorText = await response.text();
     throw new Error(
-      `Hugging Face text error ${response.status}: ${errorText.slice(0, 400)}`
+      `OpenAI text error ${response.status}: ${errorText.slice(0, 400)}`
     );
   }
 
   const data = await response.json();
   const content = data?.choices?.[0]?.message?.content;
   if (typeof content === "string") return content;
-  throw new Error("Hugging Face text response không hợp lệ");
+  throw new Error("OpenAI text response không hợp lệ");
 }
 
 export async function describeOutfit(
@@ -114,144 +86,65 @@ export async function captionImage(imageBase64: string): Promise<string> {
     : imageBase64;
   const dataUrl = `data:image/jpeg;base64,${base64Data}`;
 
-  const visionMessages = [
-    {
-      role: "user" as const,
-      content: [
-        { type: "text" as const, text: CAPTION_VISION_PROMPT },
-        { type: "image_url" as const, image_url: { url: dataUrl } },
-      ],
-    },
-  ];
+  const CAPTION_VISION_PROMPT =
+    "Identify if there is a person in this image and describe their gender (man/woman) and their clothing. If it is just clothing, describe the clothing item in detail. Keep it short. Use English.";
 
-  if (process.env.GROQ_API_KEY) {
-    try {
-      const response = await fetch(
-        "https://api.groq.com/openai/v1/chat/completions",
+  const response = await fetch(OPENAI_CHAT_API, {
+    method: "POST",
+    headers: openaiHeaders(),
+    body: JSON.stringify({
+      model: OPENAI_VISION_MODEL,
+      messages: [
         {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
-          },
-          body: JSON.stringify({
-            model: GROQ_VISION_MODEL,
-            messages: visionMessages,
-            max_tokens: 150,
-            temperature: 0.3,
-          }),
-        }
-      );
-      if (response.ok) {
-        const data = await response.json();
-        const content = data?.choices?.[0]?.message?.content;
-        if (typeof content === "string" && content.trim()) {
-          return content.trim();
-        }
-      } else {
-        const err = await response.text();
-        console.error("Groq vision caption HTTP error:", response.status, err.slice(0, 300));
-      }
-    } catch (e) {
-      console.error("Groq vision caption error", e);
-    }
+          role: "user",
+          content: [
+            { type: "text", text: CAPTION_VISION_PROMPT },
+            { type: "image_url", image_url: { url: dataUrl } },
+          ],
+        },
+      ],
+      max_tokens: 150,
+      temperature: 0.3,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(
+      `OpenAI vision error ${response.status}: ${errorText.slice(0, 400)}`
+    );
   }
 
-  if (HF_TOKEN) {
-    try {
-      const response = await fetch(HF_CHAT_API, {
-        method: "POST",
-        headers: hfHeaders(),
-        body: JSON.stringify({
-          model: HF_VISION_MODEL,
-          messages: visionMessages,
-          max_tokens: 150,
-        }),
-      });
-      if (response.ok) {
-        const data = await response.json();
-        const content = data?.choices?.[0]?.message?.content;
-        if (typeof content === "string" && content.trim()) {
-          return content.trim();
-        }
-      } else {
-        const err = await response.text();
-        console.error("HF vision caption HTTP error:", response.status, err.slice(0, 300));
-      }
-    } catch (e) {
-      console.error("HF vision (Qwen) caption error", e);
-    }
-
-    const blipUrl = `${HF_INFERENCE_BASE}/Salesforce/blip-image-captioning-large`;
-
-    try {
-      const jsonRes = await fetch(blipUrl, {
-        method: "POST",
-        headers: hfHeaders(),
-        body: JSON.stringify({ inputs: dataUrl }),
-      });
-      if (jsonRes.ok) {
-        const data = await jsonRes.json();
-        const text = Array.isArray(data)
-          ? data[0]?.generated_text
-          : data?.generated_text;
-        if (typeof text === "string" && text.trim()) {
-          return text.trim();
-        }
-      }
-    } catch (e) {
-      console.error("BLIP (JSON) caption error", e);
-    }
-
-    const binary = Buffer.from(base64Data, "base64");
-    const octetRes = await fetch(blipUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/octet-stream",
-        Authorization: hfHeaders().Authorization,
-      },
-      body: binary,
-    });
-
-    if (octetRes.ok) {
-      const data = await octetRes.json();
-      const text = Array.isArray(data)
-        ? data[0]?.generated_text
-        : data?.generated_text;
-      if (typeof text === "string" && text.trim()) {
-        return text.trim();
-      }
-    } else {
-      const err = await octetRes.text();
-      throw new Error(
-        `HF Caption error ${octetRes.status}: ${err.slice(0, 400)}`
-      );
-    }
+  const data = await response.json();
+  const content = data?.choices?.[0]?.message?.content;
+  if (typeof content === "string" && content.trim()) {
+    return content.trim();
   }
-
-  throw new Error(
-    "Không tạo được mô tả ảnh: cần GROQ_API_KEY (Groq vision) hoặc HUGGINGFACE_TOKEN. API cũ api-inference.huggingface.co đã ngừng — dùng router HF hoặc Groq."
-  );
+  throw new Error("OpenAI vision response không hợp lệ");
 }
 
 export async function generateImage(prompt: string): Promise<string> {
-  const model =
-    process.env.HUGGINGFACE_IMAGE_MODEL || "black-forest-labs/FLUX.1-schnell";
-  const response = await fetch(`${HF_INFERENCE_BASE}/${model}`, {
+  const response = await fetch(OPENAI_IMAGE_API, {
     method: "POST",
-    headers: hfHeaders(),
+    headers: openaiHeaders(),
     body: JSON.stringify({
-      inputs: prompt,
+      model: OPENAI_IMAGE_MODEL,
+      prompt: prompt,
+      n: 1,
+      size: "1024x1024",
+      response_format: "b64_json",
     }),
   });
 
   if (!response.ok) {
     const err = await response.text();
-    throw new Error(`HF Image error ${response.status}: ${err.slice(0, 400)}`);
+    throw new Error(`OpenAI Image error ${response.status}: ${err.slice(0, 400)}`);
   }
 
-  const buffer = await response.arrayBuffer();
-  return Buffer.from(buffer).toString("base64");
+  const data = await response.json();
+  const b64 = data?.data?.[0]?.b64_json;
+  if (typeof b64 === "string") return b64;
+  throw new Error("OpenAI image response không hợp lệ");
 }
 
 export { generateText };
