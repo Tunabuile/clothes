@@ -232,18 +232,27 @@ async function callGroqVision(
   throw new Error("Groq vision response không hợp lệ");
 }
 
-// ─── generateImage: OpenAI DALL-E → fallback ────────────────────
-// Note: Groq không hỗ trợ sinh ảnh, nếu DALL-E lỗi quota thì báo lỗi rõ
+const HF_INFERENCE_BASE = "https://api-inference.huggingface.co/models";
+const HF_TOKEN = process.env.HUGGINGFACE_TOKEN || "";
+const HF_IMAGE_MODEL = process.env.HUGGINGFACE_IMAGE_MODEL || "black-forest-labs/FLUX.1-schnell";
+
+function hfImageHeaders() {
+  return {
+    "Content-Type": "application/json",
+    ...(HF_TOKEN && { Authorization: `Bearer ${HF_TOKEN}` }),
+  };
+}
+
+// ─── generateImage: DALL-E 3 → fallback HuggingFace (free) ───
 
 export async function generateImage(prompt: string): Promise<string> {
+  // Try DALL-E 3 first
   try {
     return await callDalle3(prompt);
   } catch (openAIError: any) {
     if (openAIError?.message?.includes("429") || openAIError?.message?.includes("insufficient_quota")) {
-      throw new Error(
-        "OpenAI DALL-E 3 hết quota. Bạn cần nạp thêm credits tại https://platform.openai.com/settings/organization/billing " +
-        "hoặc dùng Groq (Groq không hỗ trợ sinh ảnh, chỉ hỗ trợ text & vision)."
-      );
+      console.warn("OpenAI DALL-E quota exceeded, falling back to HuggingFace free inference");
+      return await callHFImage(prompt);
     }
     throw openAIError;
   }
@@ -271,6 +280,25 @@ async function callDalle3(prompt: string): Promise<string> {
   const b64 = data?.data?.[0]?.b64_json;
   if (typeof b64 === "string") return b64;
   throw new Error("OpenAI image response không hợp lệ");
+}
+
+async function callHFImage(prompt: string): Promise<string> {
+  const response = await fetch(
+    `${HF_INFERENCE_BASE}/${HF_IMAGE_MODEL}`,
+    {
+      method: "POST",
+      headers: hfImageHeaders(),
+      body: JSON.stringify({ inputs: prompt }),
+    }
+  );
+
+  if (!response.ok) {
+    const err = await response.text();
+    throw new Error(`HF Image error ${response.status}: ${err.slice(0, 400)}`);
+  }
+
+  const buffer = await response.arrayBuffer();
+  return Buffer.from(buffer).toString("base64");
 }
 
 export { generateText };

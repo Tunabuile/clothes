@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import { Wand2, Plus, Shirt, Sparkles, ImagePlus, Brain, User, Zap, Bot, Recycle } from "lucide-react";
+import { Wand2, Plus, Shirt, Sparkles, ImagePlus, Brain, User, Zap, Bot, Recycle, Palette } from "lucide-react";
 import ImageUploader from "@/components/ImageUploader";
 import MultiImageUploader, { UploadedImage } from "@/components/MultiImageUploader";
 import BodyForm from "@/components/BodyForm";
@@ -14,10 +14,11 @@ import CLIPMatcher from "@/components/CLIPMatcher";
 import AutoLearning from "@/components/AutoLearning";
 import LabelScanner from "@/components/LabelScanner";
 import RecycleHub from "@/components/RecycleHub";
+import DreaminaStudio from "@/components/DreaminaStudio";
 import { ClothingItem } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-type Tab = "tryon" | "closet" | "stylist" | "profile" | "clip" | "auto" | "recycle";
+type Tab = "tryon" | "closet" | "stylist" | "profile" | "clip" | "auto" | "recycle" | "studio";
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<Tab>("tryon");
@@ -328,6 +329,17 @@ export default function Home() {
               <Recycle size={14} />
               Tái chế
             </button>
+            <button
+              onClick={() => setActiveTab("studio")}
+              className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-medium transition sm:px-4 sm:text-sm ${
+                activeTab === "studio"
+                  ? "bg-white text-violet-700 shadow-sm"
+                  : "text-zinc-500 hover:text-zinc-700"
+              }`}
+            >
+              <Palette size={14} />
+              Studio
+            </button>
           </div>
           </div>
         </div>
@@ -616,6 +628,11 @@ export default function Home() {
               }}
             />
           </div>
+        )}
+
+        {/* ===== TAB: DREAMINA STUDIO ===== */}
+        {activeTab === "studio" && (
+          <DreaminaStudio />
         )}
 
         {/* ===== TAB: AI STYLE PROFILE ===== */}

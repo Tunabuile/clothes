@@ -1,8 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateText, extractJSON } from "@/lib/huggingface";
 import { getStyleProfile } from "@/lib/supabase";
-import { buildDeepPersonalizedPrompt } from "@/lib/autoTrainer";
 import { evaluateColorCombo } from "@/lib/colorTheory";
+
+/**
+ * Build personalized prompt context từ style profile (inline, không dùng autoTrainer)
+ */
+function buildDeepPersonalizedPrompt(styleProfile: any, allColors: string[]): string {
+  if (!styleProfile) return "";
+  return `
+PERSONALIZATION:
+- Top colors: ${(styleProfile.top_colors || styleProfile.topColors || []).join(", ")}
+- Top styles: ${(styleProfile.top_styles || styleProfile.topStyles || []).join(", ")}
+- Disliked: ${(styleProfile.disliked_combos || styleProfile.dislikedCombos || []).join(", ")}
+- Liked: ${(styleProfile.liked_combos || styleProfile.likedCombos || []).join(", ")}
+- Personality: ${styleProfile.personality_tags || styleProfile.personalityTags || "N/A"}
+`.trim();
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -77,4 +91,3 @@ Return ONLY this JSON (no explanation):
     );
   }
 }
-
