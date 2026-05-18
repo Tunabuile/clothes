@@ -1,69 +1,19 @@
 /**
  * Image Preprocessing cho Virtual Try-On
- * - Xóa background — FREE qua HuggingFace router
- * - Graceful fallback nếu API lỗi
+ * - RMBG-1.4 hiện không hoạt động trên HF API (404)
+ * - Tạm thời skip xóa background, dùng ảnh gốc
  */
-
-const HF_TOKEN = process.env.HUGGINGFACE_TOKEN || "";
-const HF_ROUTER = "https://router.huggingface.co/hf-inference/models";
 
 /**
- * Xóa background khỏi ảnh người dùng (RMBG-1.4)
- * Dùng router endpoint mới của HF
- * Nếu lỗi → trả về ảnh gốc (không xóa bg), app vẫn chạy
+ * Xóa background — hiện không khả dụng do HF thay đổi API
+ * Trả về ảnh gốc, app vẫn chạy bình thường
  */
-export async function removeBackground(
-  imageBase64: string
-): Promise<string> {
-  const base64Data = imageBase64.includes(",")
-    ? imageBase64.split(",")[1]
-    : imageBase64;
-
-  // Thử endpoint router trước
-  const endpoints = [
-    "https://router.huggingface.co/hf-inference/models/briaai/RMBG-1.4",
-    "https://api-inference.huggingface.co/models/briaai/RMBG-1.4",
-  ];
-
-  for (const url of endpoints) {
-    try {
-      const response = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/octet-stream",
-          ...(HF_TOKEN && { Authorization: `Bearer ${HF_TOKEN}` }),
-        },
-        body: Buffer.from(base64Data, "base64"),
-      });
-
-      if (response.ok) {
-        const buffer = await response.arrayBuffer();
-        const resultBase64 = Buffer.from(buffer).toString("base64");
-        return `data:image/png;base64,${resultBase64}`;
-      }
-
-      // Nếu 404 hoặc model not found → thử endpoint khác
-      const errText = await response.text();
-      if (response.status === 404 || errText.includes("Cannot POST")) {
-        continue;
-      }
-      
-      // Các lỗi khác (429 quota, 503, ...) → log và fallback
-      console.warn(`RMBG endpoint ${url} error ${response.status}`);
-      return imageBase64;
-    } catch (e) {
-      console.warn(`RMBG endpoint ${url} failed:`, e);
-      continue;
-    }
-  }
-
-  // Tất cả endpoint đều fail → return ảnh gốc
-  console.warn("RMBG: all endpoints failed, using original image");
+export async function removeBackground(imageBase64: string): Promise<string> {
   return imageBase64;
 }
 
 /**
- * Dùng Groq (free) để tối ưu prompt tiếng Anh cho FLUX/SD
+ * Dùng Groq (free) để tối ưu prompt tiếng Anh
  */
 export async function optimizePrompt(rawPrompt: string): Promise<string> {
   const GROQ_API_KEY = process.env.GROQ_API_KEY;
@@ -76,7 +26,7 @@ export async function optimizePrompt(rawPrompt: string): Promise<string> {
       body: JSON.stringify({
         model: "llama-3.1-8b-instant",
         messages: [
-          { role: "system", content: "You are a prompt engineer for fashion image generation. Convert user prompts into detailed English prompts for FLUX/SD models. Return ONLY the optimized prompt, no explanation." },
+          { role: "system", content: "You are a prompt engineer for fashion image generation. Convert user prompts into detailed English prompts for SD/FLUX models. Return ONLY the optimized prompt, no explanation." },
           { role: "user", content: rawPrompt },
         ],
         max_tokens: 150,
@@ -93,14 +43,7 @@ export async function optimizePrompt(rawPrompt: string): Promise<string> {
 
 /**
  * Tiền xử lý ảnh người trước try-on
- * Nếu xóa bg fail → vẫn dùng ảnh gốc, app không crash
  */
 export async function preprocessPersonImage(imageBase64: string): Promise<string> {
-  try {
-    const processed = await removeBackground(imageBase64);
-    return processed;
-  } catch (e) {
-    console.warn("Preprocess failed, using original image:", e);
-    return imageBase64;
-  }
+  return imageBase64; // Tạm thời skip preprocessing
 }
