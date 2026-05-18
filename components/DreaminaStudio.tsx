@@ -109,29 +109,52 @@ export default function DreaminaStudio() {
   // ─── CAPTURE FROM CAMERA ────────────────────────────────────
 
   const handleCameraCapture = useCallback(async (target: "person" | "cloth") => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      const video = document.createElement("video");
-      video.srcObject = stream;
-      video.play();
+    const videoRef = document.createElement("video");
+    videoRef.style.cssText = "position:fixed;top:-9999px;left:-9999px;";
+    document.body.appendChild(videoRef);
 
-      // Đợi video sẵn sàng
-      await new Promise((resolve) => {
-        video.onloadedmetadata = () => {
-          video.width = video.videoWidth;
-          video.height = video.videoHeight;
-          resolve(true);
-        };
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } } 
       });
+      
+      videoRef.srcObject = stream;
+      
+      // Đợi video thực sự playing (không chỉ loadedmetadata)
+      await new Promise<void>((resolve, reject) => {
+        const timeout = setTimeout(() => reject(new Error("Camera timeout")), 10000);
+        
+        videoRef.onplaying = () => {
+          videoRef.width = videoRef.videoWidth || 640;
+          videoRef.height = videoRef.videoHeight || 480;
+          clearTimeout(timeout);
+          resolve();
+        };
+        
+        videoRef.onerror = () => {
+          clearTimeout(timeout);
+          reject(new Error("Video error"));
+        };
+        
+        videoRef.play().catch(reject);
+      });
+
+      // Đợi thêm 200ms để camera ổn định focus/exposure
+      await new Promise((r) => setTimeout(r, 200));
 
       // Chụp 1 frame
       const canvas = document.createElement("canvas");
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
+      canvas.width = videoRef.videoWidth || 640;
+      canvas.height = videoRef.videoHeight || 480;
       const ctx = canvas.getContext("2d");
+      
       if (ctx) {
-        ctx.drawImage(video, 0, 0);
-        const dataUrl = canvas.toDataURL("image/jpeg");
+        // Lật ngang nếu camera trước (selfie)
+        ctx.translate(canvas.width, 0);
+        ctx.scale(-1, 1);
+        ctx.drawImage(videoRef, 0, 0, canvas.width, canvas.height);
+        
+        const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
         if (target === "person") {
           setPersonImage(dataUrl);
         } else {
@@ -143,9 +166,16 @@ export default function DreaminaStudio() {
 
       // Dừng camera
       stream.getTracks().forEach((track) => track.stop());
-    } catch (err) {
+    } catch (err: any) {
       console.error("Camera error:", err);
-      setError("Không thể truy cập camera. Kiểm tra quyền truy cập.");
+      setError(err.message?.includes("Permission") 
+        ? "Bạn chưa cấp quyền camera. Vui lòng cho phép camera trong trình duyệt."
+        : "Không thể truy cập camera. Kiểm tra kết nối hoặc quyền truy cập.");
+    } finally {
+      // Dọn dẹp video element
+      if (videoRef.parentNode) {
+        videoRef.parentNode.removeChild(videoRef);
+      }
     }
   }, []);
 
