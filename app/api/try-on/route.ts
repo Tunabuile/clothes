@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { outfitTryOn, generativeFill, accessoryTryOn } from "@/lib/tryon";
+import { preprocessPersonImage } from "@/lib/imagePreprocess";
 
 export async function POST(req: NextRequest) {
   try {
@@ -7,14 +8,19 @@ export async function POST(req: NextRequest) {
     const { mode } = body; // "outfit" | "inpaint" | "accessory"
 
     if (mode === "outfit") {
-      const { personImageBase64, clothImageBase64, description } = body;
+      let { personImageBase64, clothImageBase64, description } = body;
       if (!personImageBase64 || !clothImageBase64) {
         return NextResponse.json(
           { error: "Cần cả ảnh người và ảnh quần áo" },
           { status: 400 }
         );
       }
-      const result = await outfitTryOn(personImageBase64, clothImageBase64, description);
+
+      // Bước 1: Xóa background ảnh người để try-on đẹp hơn
+      const cleanedPersonImage = await preprocessPersonImage(personImageBase64);
+
+      // Bước 2: Try-On
+      const result = await outfitTryOn(cleanedPersonImage, clothImageBase64, description);
       if (!result.success) {
         return NextResponse.json({ error: result.error }, { status: 500 });
       }
@@ -23,6 +29,7 @@ export async function POST(req: NextRequest) {
         resultImageUrl: result.resultImageUrl,
         resultBase64: result.resultBase64,
         modelUsed: result.modelUsed,
+        preprocessed: cleanedPersonImage !== personImageBase64, // đã xóa bg chưa
       });
     }
 
