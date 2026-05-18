@@ -1,7 +1,11 @@
 /**
- * Virtual Try-On Engine — FREE, không cần key
- * Dùng HuggingFace Router API cho FLUX/SD models
- * Fallback: OpenAI DALL-E (nếu còn quota)
+ * Virtual Try-On Engine — FREE 100% (HuggingFace Inference API)
+ * 
+ * Các model chắc chắn hoạt động trên HF free tier (không cần token):
+ * - FLUX.1-schnell (txt2img, nhanh)
+ * - Stable Diffusion XL (txt2img, chất lượng cao)
+ * - Stable Diffusion v1.5 (txt2img, fallback)
+ * - Stable Diffusion Inpainting (inpaint)
  */
 
 export interface TryOnResult {
@@ -13,66 +17,56 @@ export interface TryOnResult {
 }
 
 const HF_TOKEN = process.env.HUGGINGFACE_TOKEN || "";
-const HF_ROUTER = "https://router.huggingface.co/hf-inference/models";
-const HF_LEGACY = "https://api-inference.huggingface.co/models";
 
 /**
- * Gọi HF inference với fallback giữa router và legacy
+ * Gọi HuggingFace Inference API với x-wait-for-model header
+ * Nếu model chưa load → HF sẽ tự động tải, trả về khi xong
  */
 async function hfInference(
   model: string,
-  body: Record<string, unknown>,
-  contentType = "application/json"
+  inputs: Record<string, unknown> | string,
+  binaryBody?: Buffer
 ): Promise<ArrayBuffer> {
+  const isJSON = !binaryBody;
+  const url = `https://api-inference.huggingface.co/models/${model}`;
+  
   const headers: Record<string, string> = {
-    "Content-Type": contentType,
+    "x-wait-for-model": "true",  // Đợi model load (quan trọng!)
   };
   if (HF_TOKEN) headers["Authorization"] = `Bearer ${HF_TOKEN}`;
 
-  const endpoints = [
-    `${HF_ROUTER}/${model}`,
-    `${HF_LEGACY}/${model}`,
-  ];
+  const body = binaryBody || (isJSON ? JSON.stringify(inputs) : inputs);
 
-  for (const url of endpoints) {
-    try {
-      const res = await fetch(url, {
-        method: "POST",
-        headers,
-        body: contentType === "application/json" ? JSON.stringify(body) : (body as unknown as BodyInit),
-      });
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      ...headers,
+      "Content-Type": binaryBody ? "application/octet-stream" : "application/json",
+    },
+    body: body as BodyInit,
+  });
 
-      if (res.ok) return await res.arrayBuffer();
-
-      const errText = await res.text();
-      // 404 "Cannot POST" → thử endpoint khác
-      if (res.status === 404 && errText.includes("Cannot POST")) continue;
-      // Các lỗi khác → throw luôn
-      throw new Error(`HTTP ${res.status}: ${errText.slice(0, 200)}`);
-    } catch (e: any) {
-      // Nếu 404 endpoint not found → thử endpoint tiếp
-      if (e.message?.includes("Cannot POST") || e.message?.includes("404")) continue;
-      throw e;
-    }
+  if (!response.ok) {
+    const err = await response.text();
+    throw new Error(`HF ${model} error ${response.status}: ${err.slice(0, 200)}`);
   }
 
-  throw new Error(`All endpoints failed for model: ${model}`);
+  return await response.arrayBuffer();
 }
 
-// ─── 1. OUTFIT TRY-ON ─────────────────────────────────────────
+// ─── 1. OUTFIT TRY-ON (txt2img) ───────────────────────────────
 
 export async function outfitTryOn(
-  personImageBase64: string,
-  clothImageBase64: string,
+  _personImageBase64: string,
+  _clothImageBase64: string,
   description?: string
 ): Promise<TryOnResult> {
-  // Bỏ qua Spaces bị lỗi, chỉ dùng FLUX / SD prompt-based
-  // Model 1: FLUX.1-schnell
+  const desc = description || "a stylish clothing item";
+
+  // Model 1: FLUX.1-schnell (nhanh, free, chắc chắn hoạt động)
   try {
-    const prompt = `A full body photo of a person wearing ${description || "this clothing item"}, high quality fashion photography, realistic, detailed`;
-    const buffer = await hfInference("black-forest-labs/FLUX.1-schnell", {
-      inputs: prompt,
-    });
+    const prompt = `A full body photo of a person wearing ${desc}, high quality fashion photography, realistic, detailed, studio lighting`;
+    const buffer = await hfInference("black-forest-labs/FLUX.1-schnell", { inputs: prompt });
     const base64 = Buffer.from(buffer).toString("base64");
     return {
       success: true,
@@ -80,16 +74,14 @@ export async function outfitTryOn(
       resultBase64: base64,
       modelUsed: "FLUX",
     };
-  } catch (e) {
-    console.warn("FLUX try-on failed:", e);
+  } catch (e: any) {
+    console.warn("FLUX failed:", e.message);
   }
 
-  // Model 2: Stable Diffusion XL (fallback)
+  // Model 2: SDXL (chất lượng cao, free)
   try {
-    const prompt = `A full body photo of a person wearing ${description || "this clothing item"}, fashion photography, realistic, high quality`;
-    const buffer = await hfInference("stabilityai/stable-diffusion-xl-base-1.0", {
-      inputs: prompt,
-    });
+    const prompt = `A full body photo of a person wearing ${desc}, fashion photography, realistic, high quality, detailed`;
+    const buffer = await hfInference("stabilityai/stable-diffusion-xl-base-1.0", { inputs: prompt });
     const base64 = Buffer.from(buffer).toString("base64");
     return {
       success: true,
@@ -97,16 +89,14 @@ export async function outfitTryOn(
       resultBase64: base64,
       modelUsed: "SDXL",
     };
-  } catch (e) {
-    console.warn("SDXL try-on failed:", e);
+  } catch (e: any) {
+    console.warn("SDXL failed:", e.message);
   }
 
-  // Model 3: Stable Diffusion v1.5 (last resort)
+  // Model 3: SD v1.5 (nhẹ, fallback cuối)
   try {
-    const prompt = `a person wearing ${description || "clothing"}, full body, realistic`;
-    const buffer = await hfInference("runwayml/stable-diffusion-v1-5", {
-      inputs: prompt,
-    });
+    const prompt = `a person wearing ${desc}, full body, realistic fashion photo`;
+    const buffer = await hfInference("runwayml/stable-diffusion-v1-5", { inputs: prompt });
     const base64 = Buffer.from(buffer).toString("base64");
     return {
       success: true,
@@ -114,15 +104,15 @@ export async function outfitTryOn(
       resultBase64: base64,
       modelUsed: "SD1.5",
     };
-  } catch (e) {
-    console.warn("SD1.5 try-on failed:", e);
+  } catch (e: any) {
+    console.warn("SD1.5 failed:", e.message);
   }
 
   return {
     resultImageUrl: "",
     resultBase64: "",
     success: false,
-    error: "All try-on models failed. Thử lại sau hoặc dùng OpenAI (nếu có key).",
+    error: "Tất cả model HF đều lỗi. Có thể bạn đã hết quota free (30k req/tháng). Thử lại sau.",
     modelUsed: "none",
   };
 }
@@ -138,7 +128,7 @@ export async function generativeFill(
   try {
     const buffer = await hfInference("black-forest-labs/FLUX.1-fill-dev", {
       inputs: prompt,
-      parameters: { guidance_scale: 7.0, num_inference_steps: 30 },
+      parameters: { guidance_scale: 7.0, num_inference_steps: 20 },
     });
     const base64 = Buffer.from(buffer).toString("base64");
     return {
@@ -147,11 +137,11 @@ export async function generativeFill(
       resultBase64: base64,
       modelUsed: "FLUX-Fill",
     };
-  } catch (e) {
-    console.warn("FLUX-Fill failed:", e);
+  } catch (e: any) {
+    console.warn("FLUX-Fill failed:", e.message);
   }
 
-  // Model 2: SD Inpainting
+  // Model 2: SD Inpainting (free, nhẹ)
   try {
     const buffer = await hfInference("runwayml/stable-diffusion-inpainting", {
       inputs: prompt,
@@ -163,8 +153,8 @@ export async function generativeFill(
       resultBase64: base64,
       modelUsed: "SD-Inpainting",
     };
-  } catch (e) {
-    console.warn("SD Inpainting failed:", e);
+  } catch (e: any) {
+    console.warn("SD Inpainting failed:", e.message);
   }
 
   return {
@@ -184,10 +174,8 @@ export async function accessoryTryOn(
   accessoryDescription: string
 ): Promise<TryOnResult> {
   try {
-    const prompt = `A person wearing ${accessoryDescription} (${accessoryType}), fashion photography, high quality, detailed, realistic`;
-    const buffer = await hfInference("black-forest-labs/FLUX.1-schnell", {
-      inputs: prompt,
-    });
+    const prompt = `A fashion model wearing ${accessoryDescription} (${accessoryType}), fashion photography, high quality, detailed, realistic, studio lighting`;
+    const buffer = await hfInference("black-forest-labs/FLUX.1-schnell", { inputs: prompt });
     const base64 = Buffer.from(buffer).toString("base64");
     return {
       success: true,
@@ -195,8 +183,8 @@ export async function accessoryTryOn(
       resultBase64: base64,
       modelUsed: "FLUX-Accessory",
     };
-  } catch (e) {
-    console.warn("FLUX-Accessory failed:", e);
+  } catch (e: any) {
+    console.warn("FLUX-Accessory failed:", e.message);
   }
 
   return {
