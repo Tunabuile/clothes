@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const GROQ_API_KEY = process.env.GROQ_API_KEY || "";
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
 
 export async function POST(req: NextRequest) {
   try {
@@ -8,54 +8,50 @@ export async function POST(req: NextRequest) {
     if (!imageBase64) {
       return NextResponse.json({ error: "Thiếu ảnh" }, { status: 400 });
     }
-    if (!GROQ_API_KEY) {
-      return NextResponse.json({ error: "Thiếu GROQ_API_KEY" }, { status: 500 });
+    if (!OPENAI_API_KEY) {
+      return NextResponse.json({ error: "Thiếu OPENAI_API_KEY trong .env.local" }, { status: 500 });
     }
 
-    // Groq vision: llama-4-scout supports image input
-    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    const base64Data = imageBase64.includes(",") ? imageBase64.split(",")[1] : imageBase64;
+    const dataUrl = `data:${mimeType || "image/jpeg"};base64,${base64Data}`;
+
+    // ─── Bước 1: GPT-4o vision phân tích ảnh quần áo ───────
+    const visionRes = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${GROQ_API_KEY}`,
+        Authorization: `Bearer ${OPENAI_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "meta-llama/llama-4-scout-17b-16e-instruct",
+        model: "gpt-4o-mini",
         messages: [
           {
             role: "user",
             content: [
-              {
-                type: "image_url",
-                image_url: {
-                  url: `data:${mimeType || "image/jpeg"};base64,${imageBase64}`,
-                },
-              },
+              { type: "image_url", image_url: { url: dataUrl } },
               {
                 type: "text",
-                text: `Bạn là chuyên gia upcycle thời trang sáng tạo. Nhìn vào ảnh này (tem nhãn hoặc sản phẩm quần áo).
+                text: `Bạn là chuyên gia upcycle thời trang sáng tạo. Nhìn vào ảnh quần áo này.
 
-Hãy phân tích và trả về JSON theo format sau:
+Hãy phân tích và trả về JSON thuần (không text khác):
 {
-  "material": "chất liệu đọc được hoặc nhìn thấy (vd: 100% Cotton, Denim, Polyester...)",
+  "material": "chất liệu (vd: 100% Cotton, Denim, Polyester...)",
   "clothingType": "loại đồ (vd: Áo thun, Quần jeans, Áo sơ mi...)",
   "condition": "tình trạng (Mới, Còn tốt, Cũ)",
-  "recycleSuggestions": [
+  "ideas": [
     {
-      "title": "Tên ý tưởng sáng tạo, thời trang",
+      "title": "Tên ý tưởng sáng tạo",
       "category": "Tái chế hoặc Upcycle",
       "difficulty": "Rất dễ hoặc Dễ hoặc Trung bình hoặc Khó",
-      "time": "thời gian ước tính vd 20 phút",
-      "description": "Mô tả cách làm chi tiết bằng tiếng Việt, 1-2 câu",
-      "materials_needed": ["dụng cụ cần thiết"]
+      "time": "thời gian vd 20 phút",
+      "description": "Mô tả cách làm chi tiết bằng tiếng Việt"
     }
   ]
 }
 
 Đưa ra 4-5 ý tưởng SÁNG TẠO, thời trang (túi xách, phụ kiện, trang phục mới, đồ decor đẹp...).
-TUYỆT ĐỐI KHÔNG gợi ý: giẻ lau, khăn lau, dây buộc tóc đơn giản, hoặc bất kỳ ý tưởng nhàm chán nào.
-Ưu tiên: upcycle thành item thời trang mặc được, phụ kiện trendy, hoặc đồ decor aesthetic.
-Chỉ trả về JSON thuần, không có text khác.`,
+TUYỆT ĐỐI KHÔNG gợi ý: giẻ lau, khăn lau, dây buộc tóc đơn giản.
+Ưu tiên: upcycle thành item thời trang mặc được, phụ kiện trendy.`,
               },
             ],
           },
@@ -65,30 +61,86 @@ Chỉ trả về JSON thuần, không có text khác.`,
       }),
     });
 
-    if (!res.ok) {
-      const errText = await res.text();
-      console.error("Groq vision error:", errText);
+    if (!visionRes.ok) {
+      const errText = await visionRes.text();
+      console.error("OpenAI vision error:", errText);
       return NextResponse.json(
-        { error: `Groq API lỗi ${res.status}: ${errText.slice(0, 200)}` },
+        { error: `OpenAI lỗi ${visionRes.status}: ${errText.slice(0, 200)}` },
         { status: 500 }
       );
     }
 
-    const groqData = await res.json();
-    const content = groqData.choices?.[0]?.message?.content || "";
-
-    // Extract JSON from response
+    const visionData = await visionRes.json();
+    const content = visionData.choices?.[0]?.message?.content || "";
     const jsonMatch = content.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
-      console.error("No JSON in response:", content);
-      return NextResponse.json(
-        { error: "AI không trả về kết quả hợp lệ, thử lại nhé" },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: "AI không trả về kết quả hợp lệ" }, { status: 500 });
     }
 
-    const data = JSON.parse(jsonMatch[0]);
-    return NextResponse.json({ data });
+    const analysis = JSON.parse(jsonMatch[0]);
+    const clothingType = analysis.clothingType || "quần áo";
+    const ideas = analysis.ideas || [];
+
+    // ─── Bước 2: DALL-E 3 tạo mindmap ─────────────────────
+    const ideasText = ideas.slice(0, 4).map((i: any, idx: number) => `${idx + 1}. ${i.title}`).join(", ");
+    
+    const mindmapPrompt = `Create a mind map infographic about recycling/upcycling fashion. At the CENTER of the image, place a realistic photo of a ${clothingType}. Around it, draw 4 arrows pointing to 4 recycled product ideas: ${ideasText}. The style should be clean, modern infographic, white background, professional, with icons and arrows connecting the center to each idea. Text labels in English. High quality, minimalist design.`;
+
+    const dalleRes = await fetch("https://api.openai.com/v1/images/generations", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${OPENAI_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: "dall-e-3",
+        prompt: mindmapPrompt,
+        n: 1,
+        size: "1024x1024",
+        response_format: "b64_json",
+      }),
+    });
+
+    let mindmapBase64 = "";
+    if (dalleRes.ok) {
+      const dalleData = await dalleRes.json();
+      mindmapBase64 = dalleData?.data?.[0]?.b64_json || "";
+    }
+
+    // ─── Bước 3: Tạo description tổng quan ─────────────────
+    const descRes = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${OPENAI_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        messages: [
+          {
+            role: "user",
+            content: `Tóm tắt ngắn gọn bằng tiếng Việt (2-3 câu) về các ý tưởng tái chế cho ${clothingType} này. Phân tích nhanh: ${JSON.stringify(ideas.map((i: any) => i.title))}`,
+          },
+        ],
+        max_tokens: 200,
+        temperature: 0.7,
+      }),
+    });
+
+    let description = "";
+    if (descRes.ok) {
+      const descData = await descRes.json();
+      description = descData.choices?.[0]?.message?.content || "";
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        ...analysis,
+        mindmapImage: mindmapBase64,
+        description,
+      },
+    });
   } catch (err) {
     console.error("scan-label error:", err);
     return NextResponse.json(

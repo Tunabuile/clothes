@@ -115,11 +115,6 @@ const IDEAS: Idea[] = [
     materials_needed:["Kéo","Khóa kéo","Kim chỉ"], clothingType:["Quần jeans"], tags:["ví","phụ kiện"], likes:143,
     searchQuery:"small wallet purse handmade leather",
     tutorialUrl:"https://www.youtube.com/results?search_query=diy+wallet+jeans+pocket", tutorialLabel:"Xem YouTube" },
-  { id:"6", title:"Thảm bện từ áo cũ", category:"Tái chế", difficulty:"Trung bình", time:"60 phút",
-    description:"Cắt nhiều áo cũ thành dải, bện lại thành thảm tròn. Bền và đẹp.",
-    materials_needed:["Kéo","Móc đan"], clothingType:["Áo thun","Áo len"], tags:["thảm","đan"], likes:167,
-    searchQuery:"braided rug colorful handmade floor",
-    tutorialUrl:"https://www.youtube.com/results?search_query=braided+rug+old+clothes+diy", tutorialLabel:"Xem YouTube" },
   { id:"7", title:"Băng đô từ áo thun", category:"Upcycle", difficulty:"Rất dễ", time:"5 phút",
     description:"Cắt một dải ngang từ thân áo thun, độ rộng 5-8cm. Kéo nhẹ để cuộn lại.",
     materials_needed:["Kéo"], clothingType:["Áo thun"], tags:["phụ kiện","tóc"], likes:345,
@@ -382,6 +377,9 @@ export default function RecycleHub() {
   const [aiIdeas, setAiIdeas] = useState<Idea[]>([]);
   const [aiExpandedId, setAiExpandedId] = useState<string | null>(null);
   const [scanError, setScanError] = useState("");
+  const [mindmapImage, setMindmapImage] = useState("");
+  const [aiDescription, setAiDescription] = useState("");
+  const [clothingInfo, setClothingInfo] = useState("");
 
   const [customIdeas, setCustomIdeas] = useState<Idea[]>([]);
   const [communityIdeas, setCommunityIdeas] = useState<Idea[]>([]);
@@ -632,6 +630,7 @@ export default function RecycleHub() {
   const handleScan = async () => {
     if (!imageBase64) return;
     setIsScanning(true); setScanError(""); setAiIdeas([]);
+    setMindmapImage(""); setAiDescription(""); setClothingInfo("");
     try {
       const res = await fetch("/api/scan-label", {
         method: "POST", headers: { "Content-Type": "application/json" },
@@ -639,7 +638,19 @@ export default function RecycleHub() {
       });
       const result = await res.json();
       if (!res.ok) throw new Error(result.error);
-      const ideas: Idea[] = (result.data?.recycleSuggestions || []).map(
+      const d = result.data;
+      
+      // Mindmap ảnh
+      if (d.mindmapImage) setMindmapImage(`data:image/png;base64,${d.mindmapImage}`);
+      
+      // Description
+      if (d.description) setAiDescription(d.description);
+      
+      // Clothing info
+      setClothingInfo(`${d.clothingType || "Quần áo"} · ${d.material || ""} · ${d.condition || ""}`);
+      
+      // Ideas list
+      const ideas: Idea[] = (d.ideas || []).map(
         (s: { title: string; category: string; difficulty: string; time: string; description: string; materials_needed: string[] }, i: number) => ({
           id: `ai-${i}`, title: s.title, category: s.category || "Tái chế",
           difficulty: s.difficulty || "Dễ", time: s.time || "30 phút",
@@ -649,7 +660,6 @@ export default function RecycleHub() {
         })
       );
       setAiIdeas(ideas);
-      if (ideas.length > 0) setAiExpandedId("ai-0");
     } catch (err) {
       setScanError(err instanceof Error ? err.message : "Lỗi scan");
     } finally { setIsScanning(false); }
@@ -759,12 +769,34 @@ export default function RecycleHub() {
           </button>
         </div>
         {scanError && <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-600">⚠️ {scanError}</div>}
+        {/* Mindmap */}
+        {mindmapImage && (
+          <div className="rounded-2xl border border-green-200 bg-white overflow-hidden">
+            <div className="p-3 border-b border-green-100 bg-green-50">
+              <p className="text-xs font-semibold text-green-700 flex items-center gap-1">
+                <Leaf size={14} /> Mindmap tái chế — ảnh gốc ở giữa, ý tưởng xung quanh
+              </p>
+            </div>
+            <div className="relative aspect-square w-full">
+              <img src={mindmapImage} alt="Mindmap tái chế" className="w-full h-full object-contain" />
+            </div>
+            {aiDescription && (
+              <div className="p-3 border-t border-green-100 bg-green-50">
+                <p className="text-sm text-zinc-700">{aiDescription}</p>
+              </div>
+            )}
+          </div>
+        )}
+
         {aiIdeas.length > 0 && (
           <div className="flex flex-col gap-3">
             <div className="flex items-center gap-2">
               <Leaf size={14} className="text-green-500" />
               <p className="text-sm font-semibold text-zinc-700">✨ {aiIdeas.length} ý tưởng AI gợi ý</p>
             </div>
+            {clothingInfo && (
+              <p className="text-xs text-zinc-400 bg-zinc-50 px-3 py-1.5 rounded-lg">{clothingInfo}</p>
+            )}
             {aiIdeas.map((idea) => (
               <IdeaCard key={idea.id} idea={idea}
                 expanded={aiExpandedId === idea.id}
