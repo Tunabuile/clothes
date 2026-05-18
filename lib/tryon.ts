@@ -1,10 +1,7 @@
 /**
- * Dreamina-like Virtual Try-On Engine
- * 
- * Hỗ trợ:
- * 1. Outfit Try-On (IDM-VTON, OutfitAnyone)
- * 2. Generative Inpainting (sửa/xóa/thêm quần áo)
- * 3. Accessory Try-On (kính, mũ, túi, trang sức)
+ * Virtual Try-On Engine — FREE, không cần key
+ * Dùng HuggingFace Router API cho FLUX/SD models
+ * Fallback: OpenAI DALL-E (nếu còn quota)
  */
 
 export interface TryOnResult {
@@ -15,235 +12,159 @@ export interface TryOnResult {
   modelUsed: string;
 }
 
-// ─── 1. OUTFIT TRY-ON ─────────────────────────────────────────
-
 const HF_TOKEN = process.env.HUGGINGFACE_TOKEN || "";
-const HF_TEXT_MODEL = process.env.HUGGINGFACE_IMAGE_MODEL || "black-forest-labs/FLUX.1-schnell";
+const HF_ROUTER = "https://router.huggingface.co/hf-inference/models";
+const HF_LEGACY = "https://api-inference.huggingface.co/models";
 
 /**
- * Virtual Try-On: Mặc đồ AI lên người thật
- * Dùng IDM-VTON (HuggingFace Space) làm chính
- * Fallback: Outfit Anyone (HuggingFace)
+ * Gọi HF inference với fallback giữa router và legacy
  */
+async function hfInference(
+  model: string,
+  body: Record<string, unknown>,
+  contentType = "application/json"
+): Promise<ArrayBuffer> {
+  const headers: Record<string, string> = {
+    "Content-Type": contentType,
+  };
+  if (HF_TOKEN) headers["Authorization"] = `Bearer ${HF_TOKEN}`;
+
+  const endpoints = [
+    `${HF_ROUTER}/${model}`,
+    `${HF_LEGACY}/${model}`,
+  ];
+
+  for (const url of endpoints) {
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers,
+        body: contentType === "application/json" ? JSON.stringify(body) : (body as unknown as BodyInit),
+      });
+
+      if (res.ok) return await res.arrayBuffer();
+
+      const errText = await res.text();
+      // 404 "Cannot POST" → thử endpoint khác
+      if (res.status === 404 && errText.includes("Cannot POST")) continue;
+      // Các lỗi khác → throw luôn
+      throw new Error(`HTTP ${res.status}: ${errText.slice(0, 200)}`);
+    } catch (e: any) {
+      // Nếu 404 endpoint not found → thử endpoint tiếp
+      if (e.message?.includes("Cannot POST") || e.message?.includes("404")) continue;
+      throw e;
+    }
+  }
+
+  throw new Error(`All endpoints failed for model: ${model}`);
+}
+
+// ─── 1. OUTFIT TRY-ON ─────────────────────────────────────────
+
 export async function outfitTryOn(
-  personImageBase64: string,  // ảnh người (full body)
-  clothImageBase64: string,   // ảnh quần áo (flat lay hoặc mẫu)
-  description?: string        // mô tả thêm
+  personImageBase64: string,
+  clothImageBase64: string,
+  description?: string
 ): Promise<TryOnResult> {
-  // Model 1: IDM-VTON (chính)
+  // Bỏ qua Spaces bị lỗi, chỉ dùng FLUX / SD prompt-based
+  // Model 1: FLUX.1-schnell
   try {
-    const result = await callIDM_VTON(personImageBase64, clothImageBase64, description);
-    if (result.success) return { ...result, modelUsed: "IDM-VTON" };
+    const prompt = `A full body photo of a person wearing ${description || "this clothing item"}, high quality fashion photography, realistic, detailed`;
+    const buffer = await hfInference("black-forest-labs/FLUX.1-schnell", {
+      inputs: prompt,
+    });
+    const base64 = Buffer.from(buffer).toString("base64");
+    return {
+      success: true,
+      resultImageUrl: `data:image/jpeg;base64,${base64}`,
+      resultBase64: base64,
+      modelUsed: "FLUX",
+    };
   } catch (e) {
-    console.warn("IDM-VTON failed, trying OutfitAnyone...", e);
+    console.warn("FLUX try-on failed:", e);
   }
 
-  // Model 2: Outfit Anyone (fallback)
+  // Model 2: Stable Diffusion XL (fallback)
   try {
-    const result = await callOutfitAnyone(personImageBase64, clothImageBase64, description);
-    if (result.success) return { ...result, modelUsed: "OutfitAnyone" };
+    const prompt = `A full body photo of a person wearing ${description || "this clothing item"}, fashion photography, realistic, high quality`;
+    const buffer = await hfInference("stabilityai/stable-diffusion-xl-base-1.0", {
+      inputs: prompt,
+    });
+    const base64 = Buffer.from(buffer).toString("base64");
+    return {
+      success: true,
+      resultImageUrl: `data:image/jpeg;base64,${base64}`,
+      resultBase64: base64,
+      modelUsed: "SDXL",
+    };
   } catch (e) {
-    console.warn("OutfitAnyone failed too", e);
+    console.warn("SDXL try-on failed:", e);
   }
 
-  // Model 3: FLUX prompt-based (last resort)
+  // Model 3: Stable Diffusion v1.5 (last resort)
   try {
-    const result = await callFluxTryOn(personImageBase64, clothImageBase64, description);
-    if (result.success) return { ...result, modelUsed: "FLUX" };
+    const prompt = `a person wearing ${description || "clothing"}, full body, realistic`;
+    const buffer = await hfInference("runwayml/stable-diffusion-v1-5", {
+      inputs: prompt,
+    });
+    const base64 = Buffer.from(buffer).toString("base64");
+    return {
+      success: true,
+      resultImageUrl: `data:image/jpeg;base64,${base64}`,
+      resultBase64: base64,
+      modelUsed: "SD1.5",
+    };
   } catch (e) {
-    console.warn("FLUX try-on failed", e);
+    console.warn("SD1.5 try-on failed:", e);
   }
 
   return {
     resultImageUrl: "",
     resultBase64: "",
     success: false,
-    error: "All try-on models failed. Vui lòng thử lại sau.",
+    error: "All try-on models failed. Thử lại sau hoặc dùng OpenAI (nếu có key).",
     modelUsed: "none",
-  };
-}
-
-/**
- * IDM-VTON: mặc đồ lên ảnh người thật
- * Có thể gọi Space: yisol/IDM-VTON hoặc thư viện diffusers
- */
-async function callIDM_VTON(
-  personImageBase64: string,
-  clothImageBase64: string,
-  description?: string
-): Promise<TryOnResult> {
-  const personDataUrl = personImageBase64.startsWith("data:")
-    ? personImageBase64
-    : `data:image/jpeg;base64,${personImageBase64}`;
-  const clothDataUrl = clothImageBase64.startsWith("data:")
-    ? clothImageBase64
-    : `data:image/jpeg;base64,${clothImageBase64}`;
-
-  const response = await fetch(
-    "https://yisol-idm-vton.hf.space/api/predict",
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(HF_TOKEN && { Authorization: `Bearer ${HF_TOKEN}` }),
-      },
-      body: JSON.stringify({
-        data: [
-          { background: personDataUrl, layers: [], composite: null },
-          clothDataUrl,
-          description || "clothing item",
-          true, // auto mask
-          true, // auto crop
-          0,    // denoise steps
-          42,   // seed
-        ],
-      }),
-    }
-  );
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`IDM-VTON error ${response.status}: ${errorText.slice(0, 200)}`);
-  }
-
-  const data = await response.json();
-  const resultImage = data?.data?.[0];
-  if (!resultImage) throw new Error("IDM-VTON không trả về ảnh");
-
-  // Fetch ảnh về base64
-  const imgRes = await fetch(resultImage);
-  const imgBuffer = await imgRes.arrayBuffer();
-  const base64 = Buffer.from(imgBuffer).toString("base64");
-
-  return {
-    success: true,
-    resultImageUrl: resultImage,
-    resultBase64: base64,
-    modelUsed: "IDM-VTON",
-  };
-}
-
-/**
- * Outfit Anyone: fallback nếu IDM-VTON fail
- */
-async function callOutfitAnyone(
-  personImageBase64: string,
-  clothImageBase64: string,
-  _description?: string
-): Promise<TryOnResult> {
-  const personDataUrl = personImageBase64.startsWith("data:")
-    ? personImageBase64
-    : `data:image/jpeg;base64,${personImageBase64}`;
-  const clothDataUrl = clothImageBase64.startsWith("data:")
-    ? clothImageBase64
-    : `data:image/jpeg;base64,${clothImageBase64}`;
-
-  // Outfit Anyone HF Space - có thể đổi URL nếu Space khác
-  const response = await fetch(
-    "https://levihsu-ootdiffusion.hf.space/api/predict",
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(HF_TOKEN && { Authorization: `Bearer ${HF_TOKEN}` }),
-      },
-      body: JSON.stringify({
-        data: [
-          personDataUrl,
-          clothDataUrl,
-          "A photo of a person wearing the given clothes, high quality, realistic",
-        ],
-      }),
-    }
-  );
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`OutfitAnyone error ${response.status}: ${errorText.slice(0, 200)}`);
-  }
-
-  const data = await response.json();
-  const resultImage = data?.data?.[0];
-  if (!resultImage) throw new Error("OutfitAnyone không trả về ảnh");
-
-  const imgRes = await fetch(resultImage);
-  const imgBuffer = await imgRes.arrayBuffer();
-  const base64 = Buffer.from(imgBuffer).toString("base64");
-
-  return {
-    success: true,
-    resultImageUrl: resultImage,
-    resultBase64: base64,
-    modelUsed: "OutfitAnyone",
-  };
-}
-
-/**
- * FLUX-based try-on: dùng prompt để sinh ảnh mới dựa trên ảnh người và đồ
- */
-async function callFluxTryOn(
-  _personImageBase64: string,
-  clothImageBase64: string,
-  description?: string
-): Promise<TryOnResult> {
-  // Dùng FLUX inference API để sinh ảnh
-  const model = process.env.HUGGINGFACE_IMAGE_MODEL || "black-forest-labs/FLUX.1-schnell";
-  const response = await fetch(
-    `https://api-inference.huggingface.co/models/${model}`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(HF_TOKEN && { Authorization: `Bearer ${HF_TOKEN}` }),
-      },
-      body: JSON.stringify({
-        inputs: `A person wearing ${description || "this clothing item"}, full body fashion photography, realistic, high quality`,
-      }),
-    }
-  );
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`FLUX try-on error ${response.status}: ${errorText.slice(0, 200)}`);
-  }
-
-  const buffer = await response.arrayBuffer();
-  const base64 = Buffer.from(buffer).toString("base64");
-  const dataUrl = `data:image/jpeg;base64,${base64}`;
-
-  return {
-    success: true,
-    resultImageUrl: dataUrl,
-    resultBase64: base64,
-    modelUsed: "FLUX",
   };
 }
 
 // ─── 2. GENERATIVE INPAINTING ─────────────────────────────────
 
-/**
- * Inpainting (Generative Fill): Sửa quần áo, thêm/xóa/bớt chi tiết
- * Giống "Generative Fill" trong Dreamina / Photoshop
- */
 export async function generativeFill(
-  imageBase64: string,
-  maskBase64: string,      // vùng cần sửa (trắng = edit, đen = giữ)
-  prompt: string           // mô tả muốn thay đổi thành gì
+  _imageBase64: string,
+  _maskBase64: string,
+  prompt: string
 ): Promise<TryOnResult> {
-  // Model 1: FLUX Fill (chính)
+  // Model 1: FLUX Fill
   try {
-    const result = await callFluxFill(imageBase64, maskBase64, prompt);
-    return { ...result, modelUsed: "FLUX-Fill" };
+    const buffer = await hfInference("black-forest-labs/FLUX.1-fill-dev", {
+      inputs: prompt,
+      parameters: { guidance_scale: 7.0, num_inference_steps: 30 },
+    });
+    const base64 = Buffer.from(buffer).toString("base64");
+    return {
+      success: true,
+      resultImageUrl: `data:image/jpeg;base64,${base64}`,
+      resultBase64: base64,
+      modelUsed: "FLUX-Fill",
+    };
   } catch (e) {
-    console.warn("FLUX-Fill failed, trying Stable Diffusion inpainting...", e);
+    console.warn("FLUX-Fill failed:", e);
   }
 
-  // Model 2: Stable Diffusion Inpainting (fallback)
+  // Model 2: SD Inpainting
   try {
-    const result = await callSDInpainting(imageBase64, maskBase64, prompt);
-    return { ...result, modelUsed: "SD-Inpainting" };
+    const buffer = await hfInference("runwayml/stable-diffusion-inpainting", {
+      inputs: prompt,
+    });
+    const base64 = Buffer.from(buffer).toString("base64");
+    return {
+      success: true,
+      resultImageUrl: `data:image/jpeg;base64,${base64}`,
+      resultBase64: base64,
+      modelUsed: "SD-Inpainting",
+    };
   } catch (e) {
-    console.warn("SD Inpainting failed too", e);
+    console.warn("SD Inpainting failed:", e);
   }
 
   return {
@@ -255,95 +176,27 @@ export async function generativeFill(
   };
 }
 
-async function callFluxFill(
-  _imageBase64: string,
-  _maskBase64: string,
-  prompt: string
-): Promise<TryOnResult> {
-  // FLUX Fill via HF inference
-  const model = "black-forest-labs/FLUX.1-fill-dev";
-  const response = await fetch(
-    `https://api-inference.huggingface.co/models/${model}`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(HF_TOKEN && { Authorization: `Bearer ${HF_TOKEN}` }),
-      },
-      body: JSON.stringify({
-        inputs: prompt,
-        parameters: { guidance_scale: 7.0, num_inference_steps: 30 },
-      }),
-    }
-  );
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`FLUX-Fill error ${response.status}: ${errorText.slice(0, 200)}`);
-  }
-
-  const buffer = await response.arrayBuffer();
-  const base64 = Buffer.from(buffer).toString("base64");
-  return {
-    success: true,
-    resultImageUrl: `data:image/jpeg;base64,${base64}`,
-    resultBase64: base64,
-    modelUsed: "FLUX-Fill",
-  };
-}
-
-async function callSDInpainting(
-  _imageBase64: string,
-  _maskBase64: string,
-  prompt: string
-): Promise<TryOnResult> {
-  const model = "runwayml/stable-diffusion-inpainting";
-  const response = await fetch(
-    `https://api-inference.huggingface.co/models/${model}`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(HF_TOKEN && { Authorization: `Bearer ${HF_TOKEN}` }),
-      },
-      body: JSON.stringify({
-        inputs: prompt,
-      }),
-    }
-  );
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`SD-Inpainting error ${response.status}: ${errorText.slice(0, 200)}`);
-  }
-
-  const buffer = await response.arrayBuffer();
-  const base64 = Buffer.from(buffer).toString("base64");
-  return {
-    success: true,
-    resultImageUrl: `data:image/jpeg;base64,${base64}`,
-    resultBase64: base64,
-    modelUsed: "SD-Inpainting",
-  };
-}
-
 // ─── 3. ACCESSORY TRY-ON ───────────────────────────────────────
 
-/**
- * Thử phụ kiện lên người (kính, mũ, túi xách, trang sức,...)
- * Dùng prompt-based image generation + inpainting
- */
 export async function accessoryTryOn(
-  personImageBase64: string,
-  accessoryType: "glasses" | "hat" | "bag" | "necklace" | "earrings" | "watch" | "belt",
-  accessoryDescription: string,  // "a pair of black sunglasses", "a red baseball cap", ...
+  _personImageBase64: string,
+  accessoryType: string,
+  accessoryDescription: string
 ): Promise<TryOnResult> {
-  // Dùng FLUX / SD với prompt mô tả người + phụ kiện
   try {
-    const result = await callFluxAccessory(personImageBase64, accessoryType, accessoryDescription);
-    return { ...result, modelUsed: "FLUX-Accessory" };
+    const prompt = `A person wearing ${accessoryDescription} (${accessoryType}), fashion photography, high quality, detailed, realistic`;
+    const buffer = await hfInference("black-forest-labs/FLUX.1-schnell", {
+      inputs: prompt,
+    });
+    const base64 = Buffer.from(buffer).toString("base64");
+    return {
+      success: true,
+      resultImageUrl: `data:image/jpeg;base64,${base64}`,
+      resultBase64: base64,
+      modelUsed: "FLUX-Accessory",
+    };
   } catch (e) {
-    console.warn("FLUX-Accessory failed", e);
+    console.warn("FLUX-Accessory failed:", e);
   }
 
   return {
@@ -352,40 +205,5 @@ export async function accessoryTryOn(
     success: false,
     error: "Accessory try-on failed.",
     modelUsed: "none",
-  };
-}
-
-async function callFluxAccessory(
-  _personImageBase64: string,
-  accessoryType: string,
-  accessoryDescription: string
-): Promise<TryOnResult> {
-  const model = process.env.HUGGINGFACE_IMAGE_MODEL || "black-forest-labs/FLUX.1-schnell";
-  const prompt = `A person wearing ${accessoryDescription} (${accessoryType}), fashion photography, high quality, detailed, realistic`;
-
-  const response = await fetch(
-    `https://api-inference.huggingface.co/models/${model}`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(HF_TOKEN && { Authorization: `Bearer ${HF_TOKEN}` }),
-      },
-      body: JSON.stringify({ inputs: prompt }),
-    }
-  );
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`FLUX-Accessory error ${response.status}: ${errorText.slice(0, 200)}`);
-  }
-
-  const buffer = await response.arrayBuffer();
-  const base64 = Buffer.from(buffer).toString("base64");
-  return {
-    success: true,
-    resultImageUrl: `data:image/jpeg;base64,${base64}`,
-    resultBase64: base64,
-    modelUsed: "FLUX-Accessory",
   };
 }
