@@ -1,10 +1,7 @@
 /**
- * Virtual Try-On Engine — FREE 100%
- * 
- * HuggingFace đã deprecated SDXL và SD1.5.
- * Chỉ FLUX.1-schnell còn hoạt động qua HF router endpoint.
- * 
- * Endpoint: https://router.huggingface.co/hf-inference/models/black-forest-labs/FLUX.1-schnell
+ * Virtual Try-On Engine
+ * - OpenAI DALL-E 3 (khi có quota)
+ * - Fallback: báo lỗi nếu hết quota
  */
 
 export interface TryOnResult {
@@ -15,38 +12,39 @@ export interface TryOnResult {
   modelUsed: string;
 }
 
-const HF_TOKEN = process.env.HUGGINGFACE_TOKEN || "";
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
+const DALL_E_API = "https://api.openai.com/v1/images/generations";
 
-/**
- * Gọi FLUX.1-schnell qua HF router endpoint
- */
-async function callFlux(prompt: string): Promise<ArrayBuffer> {
-  const url = "https://router.huggingface.co/hf-inference/models/black-forest-labs/FLUX.1-schnell";
+async function callDalle3(prompt: string): Promise<string> {
+  if (!OPENAI_API_KEY) throw new Error("Thiếu OPENAI_API_KEY trong .env.local");
 
-  // Thử có token trước
-  const authOptions = [
-    HF_TOKEN ? { Authorization: `Bearer ${HF_TOKEN}` } : {},
-    {},
-  ];
+  const res = await fetch(DALL_E_API, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${OPENAI_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: "dall-e-3",
+      prompt: prompt,
+      n: 1,
+      size: "1024x1024",
+      response_format: "b64_json",
+    }),
+  });
 
-  for (const auth of authOptions) {
-    const res = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-wait-for-model": "true",
-        ...auth,
-      } as Record<string, string>,
-      body: JSON.stringify({ inputs: prompt }),
-    });
-
-    if (res.ok) return await res.arrayBuffer();
-    if (res.status === 401 || res.status === 403) continue;
+  if (!res.ok) {
     const err = await res.text();
-    throw new Error(`FLUX error ${res.status}: ${err.slice(0, 200)}`);
+    if (res.status === 429 || err.includes("insufficient_quota")) {
+      throw new Error("Hết quota OpenAI. Vui lòng nạp thêm hoặc đợi.");
+    }
+    throw new Error(`DALL-E error ${res.status}: ${err.slice(0, 200)}`);
   }
 
-  throw new Error("Không thể gọi FLUX.1-schnell (hết quota hoặc token lỗi)");
+  const data = await res.json();
+  const b64 = data?.data?.[0]?.b64_json;
+  if (!b64) throw new Error("DALL-E không trả về ảnh");
+  return b64;
 }
 
 // ─── 1. OUTFIT TRY-ON ─────────────────────────────────────────
@@ -58,45 +56,43 @@ export async function outfitTryOn(
 ): Promise<TryOnResult> {
   try {
     const desc = description || "a stylish clothing item";
-    const prompt = `fashion photography, a person wearing ${desc}, full body, realistic, high quality`;
-    const buffer = await callFlux(prompt);
-    const base64 = Buffer.from(buffer).toString("base64");
-    return { success: true, resultImageUrl: `data:image/jpeg;base64,${base64}`, resultBase64: base64, modelUsed: "FLUX.1-schnell" };
+    const prompt = `Fashion photography, a full body photo of a person wearing ${desc}, realistic, high quality, detailed, front view`;
+    const base64 = await callDalle3(prompt);
+    return {
+      success: true,
+      resultImageUrl: `data:image/jpeg;base64,${base64}`,
+      resultBase64: base64,
+      modelUsed: "DALL-E 3",
+    };
   } catch (e: any) {
-    console.error("Full error:", e);
+    return {
+      resultImageUrl: "",
+      resultBase64: "",
+      success: false,
+      error: e.message,
+      modelUsed: "none",
+    };
   }
-
-  return {
-    resultImageUrl: "",
-    resultBase64: "",
-    success: false,
-    error: "Hết quota HF hoặc token lỗi. Vào https://huggingface.co/settings/tokens tạo token mới, cập nhật HUGGINGFACE_TOKEN trong .env.local.",
-    modelUsed: "none",
-  };
 }
 
 // ─── 2. INPAINTING ────────────────────────────────────────────
 
-export async function generativeFill(
-  _imageBase64: string,
-  _maskBase64: string,
-  prompt: string
-): Promise<TryOnResult> {
-  return { resultImageUrl: "", resultBase64: "", success: false, error: "FLUX Fill chưa hỗ trợ", modelUsed: "none" };
+export async function generativeFill(_i: string, _m: string, p: string): Promise<TryOnResult> {
+  try {
+    const base64 = await callDalle3(p);
+    return { success: true, resultImageUrl: `data:image/jpeg;base64,${base64}`, resultBase64: base64, modelUsed: "DALL-E 3" };
+  } catch (e: any) {
+    return { resultImageUrl: "", resultBase64: "", success: false, error: e.message, modelUsed: "none" };
+  }
 }
 
 // ─── 3. ACCESSORY TRY-ON ──────────────────────────────────────
 
-export async function accessoryTryOn(
-  _personImageBase64: string,
-  accessoryType: string,
-  accessoryDescription: string
-): Promise<TryOnResult> {
+export async function accessoryTryOn(_p: string, type: string, desc: string): Promise<TryOnResult> {
   try {
-    const prompt = `fashion model wearing ${accessoryDescription} (${accessoryType}), fashion photography, high quality`;
-    const buffer = await callFlux(prompt);
-    const base64 = Buffer.from(buffer).toString("base64");
-    return { success: true, resultImageUrl: `data:image/jpeg;base64,${base64}`, resultBase64: base64, modelUsed: "FLUX.1-schnell" };
-  } catch { /* fail */ }
-  return { resultImageUrl: "", resultBase64: "", success: false, error: "Failed", modelUsed: "none" };
+    const base64 = await callDalle3(`Fashion model wearing ${desc} (${type}), fashion photography, high quality`);
+    return { success: true, resultImageUrl: `data:image/jpeg;base64,${base64}`, resultBase64: base64, modelUsed: "DALL-E 3" };
+  } catch (e: any) {
+    return { resultImageUrl: "", resultBase64: "", success: false, error: e.message, modelUsed: "none" };
+  }
 }
