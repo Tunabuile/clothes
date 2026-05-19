@@ -24,13 +24,12 @@ async function callDalle3(prompt: string): Promise<string> {
       "Content-Type": "application/json",
       Authorization: `Bearer ${OPENAI_API_KEY}`,
     },
-    body: JSON.stringify({
-      model: "dall-e-3",
-      prompt: prompt,
-      n: 1,
-      size: "1024x1024",
-      response_format: "b64_json",
-    }),
+      body: JSON.stringify({
+        model: "dall-e-3",
+        prompt: prompt,
+        n: 1,
+        size: "1024x1024",
+      }),
   });
 
   if (!res.ok) {
@@ -42,9 +41,13 @@ async function callDalle3(prompt: string): Promise<string> {
   }
 
   const data = await res.json();
-  const b64 = data?.data?.[0]?.b64_json;
-  if (!b64) throw new Error("DALL-E không trả về ảnh");
-  return b64;
+  const imageUrl = data?.data?.[0]?.url;
+  if (!imageUrl) throw new Error("DALL-E không trả về ảnh");
+  
+  // Fetch image and convert to base64
+  const imgRes = await fetch(imageUrl);
+  const imgBuffer = await imgRes.arrayBuffer();
+  return Buffer.from(imgBuffer).toString("base64");
 }
 
 // ─── 1. OUTFIT TRY-ON ─────────────────────────────────────────

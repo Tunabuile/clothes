@@ -267,7 +267,6 @@ async function callDalle3(prompt: string): Promise<string> {
       prompt: prompt,
       n: 1,
       size: "1024x1024",
-      response_format: "b64_json",
     }),
   });
 
@@ -277,9 +276,12 @@ async function callDalle3(prompt: string): Promise<string> {
   }
 
   const data = await response.json();
-  const b64 = data?.data?.[0]?.b64_json;
-  if (typeof b64 === "string") return b64;
-  throw new Error("OpenAI image response không hợp lệ");
+  const imageUrl = data?.data?.[0]?.url;
+  if (typeof imageUrl !== "string") throw new Error("OpenAI image response không hợp lệ");
+  
+  const imgRes = await fetch(imageUrl);
+  const imgBuffer = await imgRes.arrayBuffer();
+  return Buffer.from(imgBuffer).toString("base64");
 }
 
 async function callHFImage(prompt: string): Promise<string> {
