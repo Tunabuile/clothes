@@ -87,7 +87,7 @@ TUYỆT ĐỐI KHÔNG gợi ý: giẻ lau, khăn lau, dây buộc tóc đơn gi�
     const mindmapPrompt = `Create a mind map infographic about recycling/upcycling fashion. At the CENTER of the image, place a realistic photo of a ${clothingType}. Around it, draw 4 arrows pointing to 4 recycled product ideas: ${ideasText}. The style should be clean, modern infographic, white background, professional, with icons and arrows connecting the center to each idea. Text labels in English. High quality, minimalist design.`;
 
     const HF_TOKEN = process.env.HUGGINGFACE_TOKEN || "";
-    const fluxRes = await fetch("https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-schnell", {
+    const fluxRes = await fetch("https://router.huggingface.co/hf-inference/models/black-forest-labs/FLUX.1-schnell", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

@@ -235,12 +235,11 @@ async function callGroqVision(
 // ─── generateImage: FLUX.1-schnell (HuggingFace free) ────
 
 export async function generateImage(prompt: string): Promise<string> {
-  const model = "black-forest-labs/FLUX.1-schnell";
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
   const HF_TOKEN = process.env.HUGGINGFACE_TOKEN || "";
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (HF_TOKEN) headers["Authorization"] = `Bearer ${HF_TOKEN}`;
 
-  const res = await fetch(`https://api-inference.huggingface.co/models/${model}`, {
+  const res = await fetch("https://router.huggingface.co/hf-inference/models/black-forest-labs/FLUX.1-schnell", {
     method: "POST",
     headers,
     body: JSON.stringify({ inputs: prompt }),
