@@ -16,12 +16,7 @@ import { useI18n, type Lang } from "@/lib/i18n";
 
 type Tab = "tryon" | "closet" | "studio" | "recycle";
 
-const TAB_ICONS: Record<Tab, any> = {
-  studio: Palette,
-  tryon: Wand2,
-  closet: Shirt,
-  recycle: Recycle,
-};
+const TAB_ICONS: Record<Tab, any> = { studio: Palette, tryon: Wand2, closet: Shirt, recycle: Recycle };
 
 export default function Home() {
   const { t, lang, setLang } = useI18n();
@@ -47,42 +42,27 @@ export default function Home() {
   const [closet, setCloset] = useState<ClothingItem[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [showGenerateModal, setShowGenerateModal] = useState(false);
-  const [isScrolled, setIsScrolled] = useState(false);
-
-  useEffect(() => {
-    const onScroll = () => setIsScrolled(window.scrollY > 20);
-    window.addEventListener("scroll", onScroll);
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
 
   const handleClothImagesChange = (imgs: UploadedImage[]) => setClothImages(imgs);
 
   useEffect(() => {
-    if (clothImages.length === 0) {
-      setSelectedClothId(null); setClothBase64(""); setClothPreview(""); setClothMime("image/jpeg");
-      return;
-    }
-    const stillSelected = selectedClothId && clothImages.some((img) => img.id === selectedClothId);
-    const id = stillSelected ? selectedClothId : clothImages[0].id;
-    if (!stillSelected) setSelectedClothId(id);
-    const img = clothImages.find((i) => i.id === id) ?? clothImages[0];
+    if (clothImages.length === 0) { setSelectedClothId(null); setClothBase64(""); setClothPreview(""); setClothMime("image/jpeg"); return; }
+    const ss = selectedClothId && clothImages.some(i => i.id === selectedClothId);
+    const id = ss ? selectedClothId : clothImages[0].id;
+    if (!ss) setSelectedClothId(id);
+    const img = clothImages.find(i => i.id === id) ?? clothImages[0];
     setClothBase64(img.base64); setClothPreview(img.previewUrl); setClothMime(img.mimeType);
   }, [clothImages, selectedClothId]);
 
   const handleAddToCloset = useCallback(async () => {
     const targets = clothImages.length > 0 ? clothImages : clothBase64 ? [{ id: crypto.randomUUID(), base64: clothBase64, mimeType: clothMime, previewUrl: clothPreview }] : [];
-    if (targets.length === 0) return;
+    if (!targets.length) return;
     setIsAnalyzing(true); setError("");
     try {
       for (const img of targets) {
-        const res = await fetch("/api/analyze-clothing", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ imageBase64: img.base64, mimeType: img.mimeType }) });
-        const data = await res.json();
-        setCloset((prev) => [{
-          id: crypto.randomUUID(), imageUrl: img.previewUrl, imageBase64: img.base64,
-          type: data.data?.type || "Unknown", color: data.data?.color || "Unknown",
-          material: data.data?.material || "Unknown", style: data.data?.style || "Casual",
-          condition: data.data?.condition || "Good", addedAt: new Date(), tryOnCount: 0,
-        }, ...prev]);
+        const r = await fetch("/api/analyze-clothing", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ imageBase64: img.base64, mimeType: img.mimeType }) });
+        const d = await r.json();
+        setCloset(p => [{ id: crypto.randomUUID(), imageUrl: img.previewUrl, imageBase64: img.base64, type: d.data?.type || "Unknown", color: d.data?.color || "Unknown", material: d.data?.material || "Unknown", style: d.data?.style || "Casual", condition: d.data?.condition || "Good", addedAt: new Date(), tryOnCount: 0 }, ...p]);
       }
       setActiveTab("closet");
     } catch { setError("Cannot analyze image."); }
@@ -90,134 +70,104 @@ export default function Home() {
   }, [clothImages, clothBase64, clothMime, clothPreview]);
 
   const handleTryOn = useCallback(async (clothItem?: ClothingItem) => {
-    const selectedImage = clothImages.find((img) => img.id === selectedClothId);
-    const targetBase64 = clothItem?.imageBase64 ?? selectedImage?.base64 ?? clothBase64;
-    if (!targetBase64) { setError(t("tryon.error")); return; }
+    const si = clothImages.find(i => i.id === selectedClothId);
+    const tb = clothItem?.imageBase64 ?? si?.base64 ?? clothBase64;
+    if (!tb) { setError("Need clothing image!"); return; }
     setIsProcessing(true); setResultText(""); setGeneratedImageUrl(""); setError("");
     try {
-      const res = await fetch("/api/describe-outfit", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ personImageBase64: personBase64 || "", clothImageBase64: targetBase64, height, weight, gender, userRequest }) });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      setResultText(data.resultText || "No result."); setPersonDesc(data.personDesc || ""); setClothDesc(data.clothDesc || "");
-      if (clothItem) setCloset((prev) => prev.map((c) => c.id === clothItem.id ? { ...c, tryOnCount: c.tryOnCount + 1, lastTriedAt: new Date() } : c));
-    } catch (err) { setError(err instanceof Error ? err.message : "Connection error."); }
+      const r = await fetch("/api/describe-outfit", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ personImageBase64: personBase64 || "", clothImageBase64: tb, height, weight, gender, userRequest }) });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error);
+      setResultText(d.resultText || ""); setPersonDesc(d.personDesc || ""); setClothDesc(d.clothDesc || "");
+      if (clothItem) setCloset(p => p.map(c => c.id === clothItem.id ? { ...c, tryOnCount: c.tryOnCount + 1, lastTriedAt: new Date() } : c));
+    } catch (err) { setError(err instanceof Error ? err.message : "Error"); }
     finally { setIsProcessing(false); }
-  }, [personBase64, clothBase64, clothImages, selectedClothId, clothMime, height, weight, userRequest, t]);
+  }, [personBase64, clothBase64, clothImages, selectedClothId, clothMime, height, weight, userRequest]);
 
-  const handleDeleteFromCloset = (id: string) => setCloset((prev) => prev.filter((c) => c.id !== id));
+  const handleDeleteFromCloset = (id: string) => setCloset(p => p.filter(c => c.id !== id));
   const handleGenerateIllustration = useCallback(async () => {
     if (!resultText) return; setIsGeneratingImage(true); setError("");
     try {
-      const res = await fetch("/api/generate-image", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: resultText, style: "realistic", personDesc, clothDesc, gender }) });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Image error");
-      setGeneratedImageUrl(`data:${data.mimeType};base64,${data.imageBase64}`);
-    } catch (err) { setError(err instanceof Error ? err.message : "Cannot generate image."); }
+      const r = await fetch("/api/generate-image", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: resultText, style: "realistic", personDesc, clothDesc, gender }) });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error);
+      setGeneratedImageUrl(`data:${d.mimeType};base64,${d.imageBase64}`);
+    } catch (err) { setError(err instanceof Error ? err.message : "Error"); }
     finally { setIsGeneratingImage(false); }
-  }, [resultText, userRequest, personDesc, clothDesc]);
-  const handleClearCloset = () => { if (confirm(t("closet.confirm"))) setCloset([]); };
-
-  const genderOptions = lang === "vi" ? [{ value: "Nam", label: "Nam" }, { value: "Nữ", label: "Nữ" }] : [{ value: "Male", label: "Male" }, { value: "Female", label: "Female" }];
+  }, [resultText, personDesc, clothDesc, gender]);
+  const handleClearCloset = () => { if (confirm("Delete all?")) setCloset([]); };
+  const gOpts = lang === "vi" ? [{ v: "Nam", l: "Nam" }, { v: "Nữ", l: "Nữ" }] : [{ v: "Male", l: "Male" }, { v: "Female", l: "Female" }];
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen" style={{ background: "#f5f0eb" }}>
       {showGenerateModal && (
-        <GenerateImageModal
-          onClose={() => setShowGenerateModal(false)}
-          onUseImage={(b64, mime, preview) => {
-            handleClothImagesChange([...clothImages, { id: crypto.randomUUID(), base64: b64, mimeType: mime, previewUrl: preview, name: "AI Generated" }]);
-          }}
-        />
+        <GenerateImageModal onClose={() => setShowGenerateModal(false)}
+          onUseImage={(b, m, p) => handleClothImagesChange([...clothImages, { id: crypto.randomUUID(), base64: b, mimeType: m, previewUrl: p, name: "AI Generated" }])} />
       )}
 
-      {/* Professional Header */}
-      <header className={cn(
-        "sticky top-0 z-30 transition-all duration-300",
-        isScrolled ? "glass-strong shadow-sm" : "bg-transparent"
-      )}>
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
+      {/* HEADER */}
+      <div className="sticky top-0 z-30" style={{ background: "rgba(255,255,255,0.88)", backdropFilter: "blur(14px)", borderBottom: "1px solid #e8e4ef" }}>
+        <div className="mx-auto max-w-6xl flex items-center justify-between px-4 py-3 sm:px-6">
           <div className="flex items-center gap-3">
-            <div className="bg-gradient-to-br from-violet-600 to-indigo-600 rounded-xl p-2 shadow-lg shadow-violet-200">
+            <div style={{ background: "linear-gradient(135deg,#7c3aed,#5b21b6)", borderRadius: 12, padding: 8, boxShadow: "0 4px 12px rgba(124,58,237,0.3)" }}>
               <Sparkles size={20} className="text-white" />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-zinc-900 tracking-tight">FitAI</h1>
-              <p className="text-[11px] text-zinc-400 -mt-0.5">{t("app.subtitle")}</p>
+              <h1 className="text-lg font-bold" style={{ color: "#1a1a2e" }}>FitAI</h1>
+              <p className="text-[11px]" style={{ color: "#888" }}>{t("app.subtitle")}</p>
             </div>
           </div>
 
-          {/* Desktop Tabs */}
-          <div className="hidden sm:flex items-center gap-1 bg-zinc-100/80 backdrop-blur-sm p-1 rounded-2xl border border-zinc-200/50">
-            {(["studio", "tryon", "closet", "recycle"] as Tab[]).map((tab) => {
+          {/* TABS */}
+          <div className="hidden sm:flex items-center gap-1" style={{ background: "#f0ece6", borderRadius: 14, padding: 3 }}>
+            {(["studio","tryon","closet","recycle"] as Tab[]).map(tab => {
               const Icon = TAB_ICONS[tab];
               return (
                 <button key={tab} onClick={() => setActiveTab(tab)}
-                  className={cn(
-                    "flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200",
-                    activeTab === tab
-                      ? "bg-white text-violet-700 shadow-sm"
-                      : "text-zinc-500 hover:text-zinc-700"
-                  )}
-                >
+                  style={activeTab === tab ? { background: "white", borderRadius: 12, boxShadow: "0 1px 4px rgba(0,0,0,0.08)", color: "#7c3aed" } : { color: "#888" }}
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium transition-all duration-200">
                   <Icon size={15} />
                   <span>{t(`tab.${tab}`)}</span>
                   {tab === "closet" && closet.length > 0 && (
-                    <span className="bg-violet-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
-                      {closet.length}
-                    </span>
+                    <span style={{ background: "#7c3aed", color: "white", borderRadius: 999, fontSize: 10, fontWeight: 700, padding: "1px 7px", minWidth: 18, textAlign: "center" }}>{closet.length}</span>
                   )}
                 </button>
               );
             })}
           </div>
         </div>
-      </header>
+      </div>
 
       <main className="mx-auto max-w-6xl px-4 py-6 pb-28 sm:px-6 sm:py-8 sm:pb-8">
-        {/* STUDIO */}
-        {activeTab === "studio" && (
-          <div className="animate-fade-in">
-            <DreaminaStudio />
-          </div>
-        )}
+        {activeTab === "studio" && <div className="animate-fade-in"><DreaminaStudio /></div>}
 
-        {/* TRY-ON */}
         {activeTab === "tryon" && (
           <div className="animate-fade-in grid grid-cols-1 gap-5 lg:grid-cols-3">
             <div className="flex flex-col gap-5 lg:col-span-1">
-              <div className="card p-4 sm:p-5">
-                <ImageUploader label={t("tryon.person.label")} hint={t("tryon.person.hint")}
-                  previewUrl={personPreview}
-                  onImageChange={(b64, _, preview) => { setPersonBase64(b64); setPersonPreview(preview); }} />
+              <div style={{ background: "white", borderRadius: 16, border: "1px solid #e8e4ef", padding: 20, boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>
+                <ImageUploader label={t("tryon.person.label")} hint={t("tryon.person.hint")} previewUrl={personPreview} onImageChange={(b,_,p) => { setPersonBase64(b); setPersonPreview(p); }} />
               </div>
-              <BodyForm height={height} weight={weight}
-                onChange={(field, val) => { if (field === "height") setHeight(val); else setWeight(val); }} />
-              <div className="card p-4 sm:p-5">
-                <label className="block text-sm font-semibold text-zinc-700 mb-2">{t("tryon.gender")}</label>
-                <select value={gender} onChange={(e) => setGender(e.target.value)}
-                  className="input-modern">
-                  {genderOptions.map((opt) => (<option key={opt.value} value={opt.value}>{opt.label}</option>))}
+              <BodyForm height={height} weight={weight} onChange={(f,v) => { if (f==="height") setHeight(v); else setWeight(v); }} />
+              <div style={{ background: "white", borderRadius: 16, border: "1px solid #e8e4ef", padding: 20, boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>
+                <label className="block text-sm font-semibold mb-2" style={{ color: "#333" }}>{t("tryon.gender")}</label>
+                <select value={gender} onChange={e => setGender(e.target.value)} style={{ width: "100%", border: "1px solid #ddd8e4", borderRadius: 12, padding: "10px 14px", fontSize: "0.9rem", background: "white", outline: "none" }}>
+                  {gOpts.map(o => <option key={o.v} value={o.v}>{o.l}</option>)}
                 </select>
               </div>
             </div>
 
             <div className="flex flex-col gap-5 lg:col-span-1">
-              <div className="card p-4 sm:p-5">
-                <MultiImageUploader label={t("tryon.cloth.label")} hint={t("tryon.cloth.hint")}
-                  images={clothImages} onChange={handleClothImagesChange} maxImages={10} />
-
+              <div style={{ background: "white", borderRadius: 16, border: "1px solid #e8e4ef", padding: 20, boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>
+                <MultiImageUploader label={t("tryon.cloth.label")} hint={t("tryon.cloth.hint")} images={clothImages} onChange={handleClothImagesChange} maxImages={10} />
                 {clothImages.length > 0 && (
                   <div className="mt-3">
-                    <p className="mb-2 text-sm font-semibold text-zinc-700">{t("tryon.cloth.select")}</p>
-                    <p className="mb-2 text-xs text-zinc-400">{t("tryon.cloth.select.hint")} <span className="font-semibold text-violet-600">purple border</span></p>
+                    <p className="mb-2 text-sm font-semibold" style={{ color: "#444" }}>{t("tryon.cloth.select")}</p>
+                    <p className="mb-2 text-xs" style={{ color: "#999" }}>{t("tryon.cloth.select.hint")} <span style={{ fontWeight: 600, color: "#7c3aed" }}>purple border</span></p>
                     <div className="grid grid-cols-4 gap-2">
-                      {clothImages.map((img) => (
-                        <button key={img.id} type="button" title={img.name || "Clothing"}
-                          onClick={() => setSelectedClothId(img.id)}
-                          className={cn("relative overflow-hidden rounded-xl border-2 bg-zinc-50 transition-all aspect-square",
-                            selectedClothId === img.id ? "border-violet-500 ring-2 ring-violet-200" : "border-zinc-200 hover:border-violet-300"
-                          )}>
-                          <img src={img.previewUrl} alt={img.name || "Clothing"} className="w-full h-full object-contain" />
+                      {clothImages.map(img => (
+                        <button key={img.id} type="button" onClick={() => setSelectedClothId(img.id)}
+                          style={{ border: selectedClothId === img.id ? "2px solid #7c3aed" : "2px solid #e8e4ef", borderRadius: 12, overflow: "hidden", background: "#faf8f5", aspectRatio: "1/1", transition: "all 0.2s" }}>
+                          <img src={img.previewUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
                         </button>
                       ))}
                     </div>
@@ -225,130 +175,113 @@ export default function Home() {
                 )}
               </div>
 
-              <div className="card p-4 sm:p-5">
-                <label className="text-sm font-semibold text-zinc-700">{t("tryon.request")}</label>
-                <textarea value={userRequest} onChange={(e) => setUserRequest(e.target.value)}
-                  placeholder={t("tryon.request.placeholder")}
-                  className="input-modern mt-2 min-h-[80px] resize-none" />
+              <div style={{ background: "white", borderRadius: 16, border: "1px solid #e8e4ef", padding: 20, boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>
+                <label className="text-sm font-semibold" style={{ color: "#444" }}>{t("tryon.request")}</label>
+                <textarea value={userRequest} onChange={e => setUserRequest(e.target.value)} placeholder={t("tryon.request.placeholder")}
+                  style={{ width: "100%", marginTop: 8, border: "1px solid #ddd8e4", borderRadius: 12, padding: "10px 14px", fontSize: "0.9rem", minHeight: 80, resize: "none", outline: "none", background: "white" }} />
               </div>
 
               <button onClick={() => setShowGenerateModal(true)}
-                className="flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-violet-300 bg-violet-50/50 py-3 text-sm font-medium text-violet-600 hover:bg-violet-100 transition-all">
-                <ImagePlus size={16} /> {t("tryon.generate")}
+                style={{ border: "2px dashed #c4b5fd", borderRadius: 12, background: "#f5f3ff", padding: "12px 20px", color: "#7c3aed", fontWeight: 500, fontSize: "0.9rem", cursor: "pointer" }}>
+                <ImagePlus size={16} className="inline mr-1" /> {t("tryon.generate")}
               </button>
 
               <div className="flex flex-col gap-2">
                 <button onClick={() => handleTryOn()} disabled={!clothBase64 || isProcessing}
-                  className="btn-primary w-full flex items-center justify-center gap-2 py-3.5">
-                  <Wand2 size={16} />
-                  {isProcessing ? t("tryon.button.loading") : t("tryon.button")}
+                  style={{ background: "linear-gradient(135deg,#7c3aed,#5b21b6)", color: "white", border: "none", borderRadius: 12, padding: "14px 24px", fontWeight: 600, fontSize: "0.9rem", boxShadow: "0 4px 14px rgba(124,58,237,0.35)", cursor: "pointer", opacity: (!clothBase64 || isProcessing) ? 0.5 : 1 }}>
+                  <Wand2 size={16} className="inline mr-1" /> {isProcessing ? t("tryon.button.loading") : t("tryon.button")}
                 </button>
-                <button onClick={handleAddToCloset} disabled={clothImages.length === 0 && !clothBase64 || isAnalyzing}
-                  className="flex items-center justify-center gap-2 rounded-xl border border-zinc-200 bg-white py-3 text-sm font-medium text-zinc-600 hover:bg-zinc-50 transition-all disabled:opacity-40">
-                  <Plus size={15} />
-                  {isAnalyzing ? t("tryon.saving") : clothImages.length > 1 ? t("tryon.save.multi", { count: clothImages.length }) : t("tryon.save")}
+                <button onClick={handleAddToCloset} disabled={!clothImages.length && !clothBase64 || isAnalyzing}
+                  style={{ border: "1px solid #e8e4ef", borderRadius: 12, background: "white", padding: "12px 24px", color: "#666", fontWeight: 500, fontSize: "0.9rem", cursor: "pointer", opacity: (!clothImages.length && !clothBase64 || isAnalyzing) ? 0.4 : 1 }}>
+                  <Plus size={15} className="inline mr-1" /> {isAnalyzing ? t("tryon.saving") : clothImages.length > 1 ? t("tryon.save.multi", { count: clothImages.length }) : t("tryon.save")}
                 </button>
               </div>
 
               {error && (
-                <div className="flex items-start gap-2 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">
-                  <span>⚠️ {error}</span>
+                <div style={{ padding: "10px 16px", background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 12, color: "#dc2626", fontSize: "0.9rem" }}>
+                  ⚠️ {error}
                 </div>
               )}
             </div>
 
             <div className="lg:col-span-1">
-              <div className="card p-4 sm:p-5">
-                <TryOnResult resultText={resultText} generatedImageUrl={generatedImageUrl}
-                  isLoading={isProcessing} isGeneratingImage={isGeneratingImage}
-                  onGenerateImage={handleGenerateIllustration} />
+              <div style={{ background: "white", borderRadius: 16, border: "1px solid #e8e4ef", padding: 20, boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>
+                <TryOnResult resultText={resultText} generatedImageUrl={generatedImageUrl} isLoading={isProcessing} isGeneratingImage={isGeneratingImage} onGenerateImage={handleGenerateIllustration} />
               </div>
             </div>
           </div>
         )}
 
-        {/* CLOSET */}
         {activeTab === "closet" && (
           <div className="animate-fade-in">
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h2 className="text-xl font-bold text-zinc-900">{t("closet.title")}</h2>
-                <p className="text-sm text-zinc-400 mt-0.5">{closet.length} {t("closet.count")}</p>
+                <h2 className="text-xl font-bold" style={{ color: "#1a1a2e" }}>{t("closet.title")}</h2>
+                <p className="text-sm mt-0.5" style={{ color: "#999" }}>{closet.length} {t("closet.count")}</p>
               </div>
               <div className="flex gap-2">
                 {closet.length > 0 && (
-                  <button onClick={handleClearCloset}
-                    className="flex items-center gap-1.5 rounded-xl border border-red-200 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 transition-all">
-                    <Trash2 size={14} /> {t("closet.clear")}
+                  <button onClick={handleClearCloset} style={{ border: "1px solid #fecaca", borderRadius: 12, padding: "8px 16px", color: "#dc2626", fontWeight: 500, fontSize: "0.85rem", background: "white", cursor: "pointer" }}>
+                    <Trash2 size={14} className="inline mr-1" /> {t("closet.clear")}
                   </button>
                 )}
-                <button onClick={() => setActiveTab("tryon")}
-                  className="btn-primary flex items-center gap-1.5">
-                  <Plus size={14} /> {t("closet.add")}
+                <button onClick={() => setActiveTab("tryon")} style={{ background: "linear-gradient(135deg,#7c3aed,#5b21b6)", color: "white", border: "none", borderRadius: 12, padding: "8px 16px", fontWeight: 600, fontSize: "0.85rem", boxShadow: "0 4px 12px rgba(124,58,237,0.3)", cursor: "pointer" }}>
+                  <Plus size={14} className="inline mr-1" /> {t("closet.add")}
                 </button>
               </div>
             </div>
 
             {closet.length === 0 ? (
-              <div className="flex flex-col items-center justify-center gap-4 rounded-2xl border-2 border-dashed border-zinc-200 bg-white/50 py-20">
-                <div className="rounded-full bg-zinc-100 p-6"><Shirt size={40} className="text-zinc-300" /></div>
-                <div className="text-center">
-                  <p className="font-semibold text-zinc-500">{t("closet.empty")}</p>
-                  <p className="text-sm text-zinc-400 mt-1">{t("closet.empty.hint")}</p>
+              <div style={{ border: "2px dashed #ddd8e4", borderRadius: 16, padding: "80px 20px", textAlign: "center", background: "rgba(255,255,255,0.5)" }}>
+                <div style={{ background: "#f0ece6", borderRadius: "50%", padding: 24, display: "inline-block", marginBottom: 16 }}>
+                  <Shirt size={40} style={{ color: "#ccc" }} />
                 </div>
+                <p className="font-semibold" style={{ color: "#777" }}>{t("closet.empty")}</p>
+                <p className="text-sm mt-1" style={{ color: "#aaa" }}>{t("closet.empty.hint")}</p>
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-                {closet.map((item) => (
-                  <ClothingCard key={item.id} item={item}
-                    onTryOn={(item) => { setActiveTab("tryon"); handleTryOn(item); }}
-                    onDelete={handleDeleteFromCloset} />
-                ))}
+                {closet.map(item => <ClothingCard key={item.id} item={item} onTryOn={item => { setActiveTab("tryon"); handleTryOn(item); }} onDelete={handleDeleteFromCloset} />)}
               </div>
             )}
           </div>
         )}
 
-        {/* RECYCLE */}
         {activeTab === "recycle" && (
           <div className="animate-fade-in">
             <div className="mb-6">
-              <h2 className="text-xl font-bold text-zinc-900">{t("recycle.title")}</h2>
-              <p className="text-sm text-zinc-400 mt-0.5">{t("recycle.subtitle")}</p>
+              <h2 className="text-xl font-bold" style={{ color: "#1a1a2e" }}>{t("recycle.title")}</h2>
+              <p className="text-sm mt-0.5" style={{ color: "#999" }}>{t("recycle.subtitle")}</p>
             </div>
             <RecycleHub />
           </div>
         )}
       </main>
 
-      {/* Mobile Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 z-40 w-full glass-strong border-t border-zinc-200/80 sm:hidden pb-safe">
+      {/* MOBILE NAV */}
+      <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 40, background: "rgba(255,255,255,0.95)", backdropFilter: "blur(14px)", borderTop: "1px solid #e8e4ef" }} className="sm:hidden">
         <div className="flex items-center justify-around px-2 py-1.5">
-          {(["studio", "tryon", "closet", "recycle"] as Tab[]).map((tab) => {
+          {(["studio","tryon","closet","recycle"] as Tab[]).map(tab => {
             const Icon = TAB_ICONS[tab];
             return (
               <button key={tab} onClick={() => setActiveTab(tab)}
-                className={cn(
-                  "flex flex-col items-center gap-0.5 py-2 px-3 rounded-xl transition-all",
-                  activeTab === tab ? "text-violet-700 bg-violet-50" : "text-zinc-400"
-                )}>
+                style={activeTab === tab ? { color: "#7c3aed" } : { color: "#aaa" }}
+                className="flex flex-col items-center gap-0.5 py-2 px-3">
                 <Icon size={20} />
-                <span className="text-[9px] font-medium">{t(`tab.${tab}`)}</span>
+                <span style={{ fontSize: 9, fontWeight: 500 }}>{t(`tab.${tab}`)}</span>
               </button>
             );
           })}
         </div>
-      </nav>
+      </div>
 
-      {/* Language Switcher */}
-      <div className="fixed bottom-6 right-6 z-50">
-        <div className="flex items-center gap-1 bg-white/95 backdrop-blur-md rounded-full border border-zinc-200 shadow-lg p-1">
-          <Globe size={15} className="text-zinc-400 ml-2" />
-          {(["vi", "en"] as Lang[]).map((l) => (
+      {/* LANGUAGE */}
+      <div style={{ position: "fixed", bottom: 24, right: 24, zIndex: 50 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 4, background: "rgba(255,255,255,0.95)", backdropFilter: "blur(12px)", borderRadius: 999, border: "1px solid #e8e4ef", boxShadow: "0 4px 16px rgba(0,0,0,0.08)", padding: "4px 4px 4px 12px" }}>
+          <Globe size={15} style={{ color: "#aaa" }} />
+          {(["vi","en"] as Lang[]).map(l => (
             <button key={l} onClick={() => setLang(l)}
-              className={cn("px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all",
-                lang === l ? "bg-violet-600 text-white shadow-sm" : "text-zinc-500 hover:text-zinc-700"
-              )}>
+              style={lang === l ? { background: "#7c3aed", color: "white", borderRadius: 999, padding: "4px 10px", fontSize: 11, fontWeight: 600, border: "none", cursor: "pointer" } : { background: "transparent", color: "#888", border: "none", borderRadius: 999, padding: "4px 10px", fontSize: 11, fontWeight: 500, cursor: "pointer" }}>
               {l === "vi" ? "VI" : "EN"}
             </button>
           ))}
