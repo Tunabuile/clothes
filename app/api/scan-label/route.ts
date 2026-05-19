@@ -97,14 +97,18 @@ TUYỆT ĐỐI KHÔNG gợi ý: giẻ lau, khăn lau, dây buộc tóc đơn gi�
         prompt: mindmapPrompt,
         n: 1,
         size: "1024x1024",
-        response_format: "b64_json",
       }),
     });
 
     let mindmapBase64 = "";
     if (dalleRes.ok) {
       const dalleData = await dalleRes.json();
-      mindmapBase64 = dalleData?.data?.[0]?.b64_json || "";
+      const imageUrl = dalleData?.data?.[0]?.url;
+      if (imageUrl) {
+        const imgRes = await fetch(imageUrl);
+        const imgBuf = await imgRes.arrayBuffer();
+        mindmapBase64 = Buffer.from(imgBuf).toString("base64");
+      }
     }
 
     // ─── Bước 3: Tạo description tổng quan ─────────────────
