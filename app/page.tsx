@@ -75,7 +75,7 @@ export default function Home() {
     if (!tb) { setError("Need clothing image!"); return; }
     setIsProcessing(true); setResultText(""); setGeneratedImageUrl(""); setError("");
     try {
-      const r = await fetch("/api/describe-outfit", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ personImageBase64: personBase64 || "", clothImageBase64: tb, height, weight, gender, userRequest }) });
+      const r = await fetch("/api/describe-outfit", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ personImageBase64: personBase64 || "", clothImageBase64: tb, height, weight, gender, userRequest, lang }) });
       const d = await r.json();
       if (!r.ok) throw new Error(d.error);
       setResultText(d.resultText || ""); setPersonDesc(d.personDesc || ""); setClothDesc(d.clothDesc || "");
