@@ -15,39 +15,34 @@ export default function BodyForm({ height, weight, onChange }: BodyFormProps) {
   const bmi = height > 0 && weight > 0 ? getBMI(height, weight) : null;
   const bodyType = bmi ? getBodyType(bmi) : null;
 
-  const bmiColor =
-    bmi === null ? "text-zinc-400"
-    : bmi < 18.5 ? "text-blue-500"
-    : bmi < 23 ? "text-green-500"
-    : bmi < 27.5 ? "text-yellow-500"
-    : "text-red-500";
+  const bmiColor = bmi === null ? "text-zinc-400" : bmi < 18.5 ? "text-blue-500" : bmi < 23 ? "text-green-500" : bmi < 27.5 ? "text-yellow-500" : "text-red-500";
 
   return (
-    <div className="rounded-2xl border border-zinc-200 bg-white p-5 flex flex-col gap-4">
-      <h3 className="font-semibold text-zinc-800 text-sm">📏 {t("tryon.height")}</h3>
+    <div className="card p-5 space-y-4">
+      <h3 className="font-semibold text-zinc-800 text-sm flex items-center gap-2">
+        <span className="w-1.5 h-5 bg-violet-500 rounded-full" />
+        {t("tryon.height")}
+      </h3>
 
       <div className="grid grid-cols-2 gap-4">
-        <div className="flex flex-col gap-1.5">
+        <div className="space-y-2">
           <label className="text-xs font-medium text-zinc-500">{t("tryon.height")} (cm)</label>
           <input type="number" min={100} max={250} value={height || ""}
-            onChange={(e) => onChange("height", Number(e.target.value))} placeholder="170"
-            className="rounded-xl border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400 transition" />
+            onChange={(e) => onChange("height", Number(e.target.value))} placeholder="170" className="input-modern" />
           <input type="range" min={140} max={210} value={height || 170}
-            onChange={(e) => onChange("height", Number(e.target.value))} className="accent-violet-500" />
+            onChange={(e) => onChange("height", Number(e.target.value))} className="w-full accent-violet-500" />
         </div>
-
-        <div className="flex flex-col gap-1.5">
+        <div className="space-y-2">
           <label className="text-xs font-medium text-zinc-500">{t("tryon.weight")} (kg)</label>
           <input type="number" min={30} max={200} value={weight || ""}
-            onChange={(e) => onChange("weight", Number(e.target.value))} placeholder="60"
-            className="rounded-xl border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400 transition" />
+            onChange={(e) => onChange("weight", Number(e.target.value))} placeholder="60" className="input-modern" />
           <input type="range" min={30} max={150} value={weight || 60}
-            onChange={(e) => onChange("weight", Number(e.target.value))} className="accent-violet-500" />
+            onChange={(e) => onChange("weight", Number(e.target.value))} className="w-full accent-violet-500" />
         </div>
       </div>
 
       {bmi && (
-        <div className="flex items-center justify-between rounded-xl bg-zinc-50 px-4 py-3">
+        <div className="flex items-center justify-between rounded-xl bg-gradient-to-r from-zinc-50 to-violet-50 border border-zinc-100 px-4 py-3">
           <div>
             <p className="text-xs text-zinc-400">BMI</p>
             <p className={cn("text-2xl font-bold", bmiColor)}>{bmi}</p>
