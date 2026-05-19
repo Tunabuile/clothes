@@ -81,25 +81,40 @@ TUYỆT ĐỐI KHÔNG gợi ý: giẻ lau, khăn lau, dây buộc tóc đơn gi�
     const clothingType = analysis.clothingType || "quần áo";
     const ideas = analysis.ideas || [];
 
-    // ─── Bước 2: FLUX.1-schnell tạo mindmap ──────────────
+    // ─── Bước 2: DALL-E 3 tạo mindmap (ưu tiên) → FLUX fallback ──
     const ideasText = ideas.slice(0, 4).map((i: any, idx: number) => `${idx + 1}. ${i.title}`).join(", ");
-    
     const mindmapPrompt = `Create a mind map infographic about recycling/upcycling fashion. At the CENTER of the image, place a realistic photo of a ${clothingType}. Around it, draw 4 arrows pointing to 4 recycled product ideas: ${ideasText}. The style should be clean, modern infographic, white background, professional, with icons and arrows connecting the center to each idea. Text labels in English. High quality, minimalist design.`;
 
-    const HF_TOKEN = process.env.HUGGINGFACE_TOKEN || "";
-    const fluxRes = await fetch("https://router.huggingface.co/hf-inference/models/black-forest-labs/FLUX.1-schnell", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(HF_TOKEN ? { Authorization: `Bearer ${HF_TOKEN}` } : {}),
-      },
-      body: JSON.stringify({ inputs: mindmapPrompt }),
-    });
-
     let mindmapBase64 = "";
-    if (fluxRes.ok) {
-      const imgBuf = await fluxRes.arrayBuffer();
-      mindmapBase64 = Buffer.from(imgBuf).toString("base64");
+
+    // Thử DALL-E 3 trước
+    try {
+      const dalleRes = await fetch("https://api.openai.com/v1/images/generations", {
+        method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${OPENAI_API_KEY}` },
+        body: JSON.stringify({ model: "dall-e-3", prompt: mindmapPrompt, n: 1, size: "1024x1024" }),
+      });
+      if (dalleRes.ok) {
+        const dalleData = await dalleRes.json();
+        const imgUrl = dalleData?.data?.[0]?.url;
+        if (imgUrl) {
+          const imgRes = await fetch(imgUrl);
+          mindmapBase64 = Buffer.from(await imgRes.arrayBuffer()).toString("base64");
+        }
+      }
+    } catch (e) { console.warn("DALL-E mindmap failed:", e); }
+
+    // Fallback FLUX
+    if (!mindmapBase64) {
+      try {
+        const HF_TOKEN = process.env.HUGGINGFACE_TOKEN || "";
+        const fluxRes = await fetch("https://router.huggingface.co/hf-inference/models/black-forest-labs/FLUX.1-schnell", {
+          method: "POST", headers: { "Content-Type": "application/json", ...(HF_TOKEN ? { Authorization: `Bearer ${HF_TOKEN}` } : {}) },
+          body: JSON.stringify({ inputs: mindmapPrompt }),
+        });
+        if (fluxRes.ok) {
+          mindmapBase64 = Buffer.from(await fluxRes.arrayBuffer()).toString("base64");
+        }
+      } catch (e) { console.warn("FLUX mindmap failed:", e); }
     }
 
     // ─── Bước 3: Tạo description tổng quan ─────────────────
