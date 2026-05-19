@@ -232,34 +232,23 @@ async function callGroqVision(
   throw new Error("Groq vision response không hợp lệ");
 }
 
-// ─── generateImage: DALL-E 3 → fallback FLUX ────
+// ─── generateImage: Chỉ dùng OpenAI DALL-E 3 ────
 
 export async function generateImage(prompt: string): Promise<string> {
-  // Ưu tiên DALL-E 3
-  try {
-    const res = await fetch(OPENAI_IMAGE_API, {
-      method: "POST",
-      headers: openaiHeaders(),
-      body: JSON.stringify({ model: "dall-e-3", prompt, n: 1, size: "1024x1024" }),
-    });
-    if (!res.ok) throw new Error(`DALL-E ${res.status}`);
-    const data = await res.json();
-    const url = data?.data?.[0]?.url;
-    if (url) {
-      const imgRes = await fetch(url);
-      return Buffer.from(await imgRes.arrayBuffer()).toString("base64");
-    }
-  } catch (e) { console.warn("DALL-E failed:", e); }
-
-  // Fallback FLUX
-  const HF_TOKEN = process.env.HUGGINGFACE_TOKEN || "";
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
-  if (HF_TOKEN) headers["Authorization"] = `Bearer ${HF_TOKEN}`;
-  const res = await fetch("https://router.huggingface.co/hf-inference/models/black-forest-labs/FLUX.1-schnell", {
-    method: "POST", headers, body: JSON.stringify({ inputs: prompt }),
+  const res = await fetch(OPENAI_IMAGE_API, {
+    method: "POST", headers: openaiHeaders(),
+    body: JSON.stringify({ model: "dall-e-3", prompt, n: 1, size: "1024x1024" }),
   });
-  if (!res.ok) throw new Error(`FLUX error ${res.status}`);
-  return Buffer.from(await res.arrayBuffer()).toString("base64");
+  if (!res.ok) {
+    const err = await res.text();
+    if (err.includes("does not exist")) throw new Error("Key không hỗ trợ DALL-E");
+    throw new Error(`DALL-E error ${res.status}: ${err.slice(0, 200)}`);
+  }
+  const data = await res.json();
+  const url = data?.data?.[0]?.url;
+  if (!url) throw new Error("Không nhận được ảnh");
+  const imgRes = await fetch(url);
+  return Buffer.from(await imgRes.arrayBuffer()).toString("base64");
 }
 
 export { generateText };

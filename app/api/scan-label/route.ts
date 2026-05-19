@@ -87,36 +87,6 @@ TUYỆT ĐỐI KHÔNG gợi ý: giẻ lau, khăn lau, dây buộc tóc đơn gi�
 
     let mindmapBase64 = "";
 
-    // Thử DALL-E 3 trước
-    try {
-      const dalleRes = await fetch("https://api.openai.com/v1/images/generations", {
-        method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${OPENAI_API_KEY}` },
-        body: JSON.stringify({ model: "dall-e-3", prompt: mindmapPrompt, n: 1, size: "1024x1024" }),
-      });
-      if (dalleRes.ok) {
-        const dalleData = await dalleRes.json();
-        const imgUrl = dalleData?.data?.[0]?.url;
-        if (imgUrl) {
-          const imgRes = await fetch(imgUrl);
-          mindmapBase64 = Buffer.from(await imgRes.arrayBuffer()).toString("base64");
-        }
-      }
-    } catch (e) { console.warn("DALL-E mindmap failed:", e); }
-
-    // Fallback FLUX
-    if (!mindmapBase64) {
-      try {
-        const HF_TOKEN = process.env.HUGGINGFACE_TOKEN || "";
-        const fluxRes = await fetch("https://router.huggingface.co/hf-inference/models/black-forest-labs/FLUX.1-schnell", {
-          method: "POST", headers: { "Content-Type": "application/json", ...(HF_TOKEN ? { Authorization: `Bearer ${HF_TOKEN}` } : {}) },
-          body: JSON.stringify({ inputs: mindmapPrompt }),
-        });
-        if (fluxRes.ok) {
-          mindmapBase64 = Buffer.from(await fluxRes.arrayBuffer()).toString("base64");
-        }
-      } catch (e) { console.warn("FLUX mindmap failed:", e); }
-    }
-
     // ─── Bước 3: Tạo description tổng quan ─────────────────
     const descRes = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",

@@ -253,10 +253,6 @@ export default function DreaminaStudio() {
                     <div className="absolute inset-0 overflow-hidden" style={{ width: `${sliderPos}%` }}>
                       <Image src={personImage} alt="" fill className="object-contain" />
                     </div>
-                    <div className="absolute bottom-2 left-2 z-20 flex gap-2">
-                      <span className="bg-black/50 text-white text-[10px] px-2 py-0.5 rounded">{t("studio.result.before")}</span>
-                      <span className="bg-black/50 text-white text-[10px] px-2 py-0.5 rounded">{t("studio.result.after")}</span>
-                    </div>
                     <div className="absolute top-0 bottom-0 w-0.5 bg-white shadow-lg z-10" style={{ left: `${sliderPos}%` }}>
                       <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 bg-white rounded-full p-1 shadow-lg border border-zinc-200">
                         <ChevronLeft size={14} className="text-zinc-600" /><ChevronRight size={14} className="text-zinc-600" />
