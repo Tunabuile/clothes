@@ -359,12 +359,13 @@ export default function RecycleHub() {
   const [imageMime, setImageMime] = useState("image/jpeg");
   const [imagePreview, setImagePreview] = useState("");
   const [isScanning, setIsScanning] = useState(false);
-  const [aiIdeas, setAiIdeas] = useState<Idea[]>([]);
-  const [aiExpandedId, setAiExpandedId] = useState<string | null>(null);
   const [scanError, setScanError] = useState("");
   const [mindmapImage, setMindmapImage] = useState("");
   const [aiDescription, setAiDescription] = useState("");
   const [clothingInfo, setClothingInfo] = useState("");
+  const [aiIdeas, setAiIdeas] = useState<
+    { title: string; category: string; difficulty: string; time: string; description: string }[]
+  >([]);
 
   const [customIdeas, setCustomIdeas] = useState<Idea[]>([]);
   const [communityIdeas, setCommunityIdeas] = useState<Idea[]>([]);
@@ -614,40 +615,42 @@ export default function RecycleHub() {
 
   const handleScan = async () => {
     if (!imageBase64) return;
-    setIsScanning(true); setScanError(""); setAiIdeas([]);
-    setMindmapImage(""); setAiDescription(""); setClothingInfo("");
+    setIsScanning(true);
+    setScanError("");
+    setAiIdeas([]);
+    setMindmapImage("");
+    setAiDescription("");
+    setClothingInfo("");
     try {
       const res = await fetch("/api/scan-label", {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ imageBase64, mimeType: imageMime }),
       });
       const result = await res.json();
       if (!res.ok) throw new Error(result.error);
       const d = result.data;
-      
-      // Mindmap ảnh
-      if (d.mindmapImage) setMindmapImage(`data:image/png;base64,${d.mindmapImage}`);
-      
-      // Description
+
+      if (d.mindmapImage) {
+        setMindmapImage(`data:image/png;base64,${d.mindmapImage}`);
+      }
       if (d.description) setAiDescription(d.description);
-      
-      // Clothing info
-      setClothingInfo(`${d.clothingType || "Quần áo"} · ${d.material || ""} · ${d.condition || ""}`);
-      
-      // Ideas list
-      const ideas: Idea[] = (d.ideas || []).map(
-        (s: { title: string; category: string; difficulty: string; time: string; description: string; materials_needed: string[] }, i: number) => ({
-          id: `ai-${i}`, title: s.title, category: s.category || "Tái chế",
-          difficulty: s.difficulty || "Dễ", time: s.time || "30 phút",
-          description: s.description, materials_needed: s.materials_needed || [],
-          clothingType: [], tags: ["AI"], likes: 0,
-          searchQuery: s.title + " DIY handmade",
-        })
-      );
-      setAiIdeas(ideas);
+
+      const parts = [
+        d.clothingType || "Quần áo",
+        d.material,
+        d.condition,
+        d.colorTone ? `Màu: ${d.colorTone}` : "",
+        d.pattern ? `Hoa văn: ${d.pattern}` : "",
+      ].filter(Boolean);
+      setClothingInfo(parts.join(" · "));
+
+      setAiIdeas(d.ideas || []);
     } catch (err) {
       setScanError(err instanceof Error ? err.message : "Lỗi scan");
-    } finally { setIsScanning(false); }
+    } finally {
+      setIsScanning(false);
+    }
   };
 
   return (
@@ -738,7 +741,9 @@ export default function RecycleHub() {
       <div className="flex flex-col gap-4 lg:col-span-2">
         <div>
           <h3 className="font-bold text-zinc-900 text-lg">🤖 AI Hỗ trợ thiết kế</h3>
-          <p className="text-xs text-zinc-400 mt-0.5">Chụp sản phẩm → AI gợi ý ý tưởng tái chế cá nhân hóa</p>
+          <p className="text-xs text-zinc-400 mt-0.5">
+            Chụp sản phẩm → AI tạo sơ đồ tư duy 5 ý tưởng (cùng tông màu &amp; hoa văn vải gốc)
+          </p>
         </div>
         <div className="rounded-2xl border border-green-100 bg-gradient-to-br from-green-50 to-emerald-50 p-4">
           <div className="flex items-center gap-2 mb-3">
@@ -750,51 +755,70 @@ export default function RecycleHub() {
             onImageChange={(b64, mime, preview) => { setImageBase64(b64); setImageMime(mime); setImagePreview(preview); }} />
           <button onClick={handleScan} disabled={!imageBase64 || isScanning}
             className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-green-600 py-3 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-40 disabled:cursor-not-allowed transition">
-            {isScanning ? <><Loader2 size={15} className="animate-spin" /> AI đang phân tích...</> : <><Sparkles size={15} /> Tìm ý tưởng tái chế</>}
+            {isScanning ? (
+              <>
+                <Loader2 size={15} className="animate-spin" /> AI đang tạo mindmap (30–60 giây)...
+              </>
+            ) : (
+              <>
+                <Sparkles size={15} /> Tạo mindmap tái chế
+              </>
+            )}
           </button>
         </div>
         {scanError && <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-600">⚠️ {scanError}</div>}
-        {/* Mindmap */}
-        {mindmapImage && (
+        {isScanning && (
+          <div className="rounded-2xl border border-green-200 bg-green-50 p-6 flex flex-col items-center gap-3">
+            <Loader2 size={28} className="animate-spin text-green-600" />
+            <p className="text-sm font-semibold text-green-800 text-center">AI đang tạo mindmap (30–60 giây)...</p>
+            <p className="text-xs text-green-600 text-center">Phân tích màu &amp; hoa văn, sau đó GPT Image vẽ ảnh</p>
+          </div>
+        )}
+
+        {mindmapImage && !isScanning && (
           <div className="rounded-2xl border border-green-200 bg-white overflow-hidden">
             <div className="p-3 border-b border-green-100 bg-green-50">
               <p className="text-xs font-semibold text-green-700 flex items-center gap-1">
-                <Leaf size={14} /> Mindmap tái chế — ảnh gốc ở giữa, ý tưởng xung quanh
+                <Leaf size={14} /> Mindmap tái chế — AI tạo ảnh
               </p>
+              {clothingInfo && (
+                <p className="text-[11px] text-zinc-500 mt-1 leading-relaxed">{clothingInfo}</p>
+              )}
             </div>
             <div className="relative aspect-square w-full">
               <img src={mindmapImage} alt="Mindmap tái chế" className="w-full h-full object-contain" />
             </div>
             {aiDescription && (
-              <div className="p-3 border-t border-green-100 bg-green-50">
-                <p className="text-sm text-zinc-700">{aiDescription}</p>
+              <div className="p-4 border-t border-green-100">
+                <p className="text-xs font-semibold text-zinc-600 mb-2">Chi tiết 5 sản phẩm trong mindmap</p>
+                <p className="text-sm text-zinc-700 leading-relaxed whitespace-pre-line">{aiDescription}</p>
+              </div>
+            )}
+            {aiIdeas.length > 0 && (
+              <div className="p-4 border-t border-zinc-100 flex flex-col gap-2">
+                {aiIdeas.map((idea, i) => (
+                  <div key={i} className="rounded-xl border border-zinc-100 bg-zinc-50 px-3 py-2.5">
+                    <div className="flex items-start justify-between gap-2 mb-1">
+                      <p className="text-sm font-semibold text-zinc-800">{i + 1}. {idea.title}</p>
+                      <span className={cn("shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-medium", CAT_COLORS[idea.category] || "bg-zinc-100 text-zinc-600")}>
+                        {idea.category}
+                      </span>
+                    </div>
+                    <p className="text-xs text-zinc-600 leading-relaxed">{idea.description}</p>
+                    <p className="text-[11px] text-zinc-400 mt-1">{idea.difficulty} · {idea.time}</p>
+                  </div>
+                ))}
               </div>
             )}
           </div>
         )}
 
-        {aiIdeas.length > 0 && (
-          <div className="flex flex-col gap-3">
-            <div className="flex items-center gap-2">
-              <Leaf size={14} className="text-green-500" />
-              <p className="text-sm font-semibold text-zinc-700">✨ {aiIdeas.length} ý tưởng AI gợi ý</p>
-            </div>
-            {clothingInfo && (
-              <p className="text-xs text-zinc-400 bg-zinc-50 px-3 py-1.5 rounded-lg">{clothingInfo}</p>
-            )}
-            {aiIdeas.map((idea) => (
-              <IdeaCard key={idea.id} idea={idea}
-                expanded={aiExpandedId === idea.id}
-                onToggle={() => setAiExpandedId(aiExpandedId === idea.id ? null : idea.id)} />
-            ))}
-          </div>
-        )}
-        {!isScanning && aiIdeas.length === 0 && !scanError && (
+        {!isScanning && !mindmapImage && !scanError && (
           <div className="flex flex-col items-center gap-3 rounded-2xl border-2 border-dashed border-zinc-200 py-10">
             <div className="rounded-full bg-green-50 p-4"><Recycle size={24} className="text-green-300" /></div>
             <div className="text-center">
-              <p className="text-sm font-semibold text-zinc-500">Chưa có gợi ý AI</p>
-              <p className="text-xs text-zinc-400 mt-1">Chụp sản phẩm để AI tạo ý tưởng riêng cho bạn</p>
+              <p className="text-sm font-semibold text-zinc-500">Chưa có mindmap AI</p>
+              <p className="text-xs text-zinc-400 mt-1">Chụp sản phẩm để AI tạo sơ đồ tư duy 5 ý tưởng tái chế</p>
             </div>
           </div>
         )}

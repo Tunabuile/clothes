@@ -1,36 +1,26 @@
 "use client";
 
-import Image from "next/image";
-import { Sparkles } from "lucide-react";
+import { Sparkles, MessageSquareText } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 
 interface TryOnResultProps {
   resultText: string;
-  generatedImageUrl: string;
   isLoading: boolean;
-  isGeneratingImage: boolean;
-  onGenerateImage?: () => void;
 }
 
-export default function TryOnResult({
-  resultText,
-  generatedImageUrl,
-  isLoading,
-  isGeneratingImage,
-  onGenerateImage,
-}: TryOnResultProps) {
+export default function TryOnResult({ resultText, isLoading }: TryOnResultProps) {
   const { t } = useI18n();
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center gap-4 rounded-2xl border-2 border-dashed border-violet-200 bg-violet-50 min-h-[240px] sm:min-h-[320px]">
+      <div className="flex min-h-[320px] flex-col items-center justify-center gap-4 rounded-2xl border border-violet-100 bg-gradient-to-b from-violet-50/80 to-white px-6">
         <div className="relative">
-          <div className="h-16 w-16 rounded-full border-4 border-violet-200 border-t-violet-600 animate-spin" />
-          <Sparkles size={20} className="absolute inset-0 m-auto text-violet-500" />
+          <div className="h-14 w-14 rounded-full border-[3px] border-violet-100 border-t-violet-600 animate-spin" />
+          <Sparkles size={18} className="absolute inset-0 m-auto text-violet-500" />
         </div>
         <div className="text-center">
-          <p className="font-semibold text-violet-700">{t("tryon.button.loading")}</p>
-          <p className="text-sm text-violet-400 mt-1">{t("studio.result.wait")}</p>
+          <p className="font-semibold text-violet-900">{t("tryon.button.loading")}</p>
+          <p className="mt-1 text-sm text-violet-500">{t("tryon.result.loading.hint")}</p>
         </div>
       </div>
     );
@@ -38,41 +28,30 @@ export default function TryOnResult({
 
   if (!resultText) {
     return (
-      <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-zinc-200 bg-zinc-50 min-h-[240px] sm:min-h-[320px]">
-        <div className="rounded-full bg-zinc-100 p-5">
-          <Sparkles size={32} className="text-zinc-300" />
+      <div className="flex min-h-[320px] flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-zinc-200 bg-zinc-50/80 px-6 text-center">
+        <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-zinc-100">
+          <MessageSquareText size={32} className="text-zinc-300" />
         </div>
-        <p className="text-sm text-zinc-400">{t("studio.result.empty")}</p>
+        <p className="font-medium text-zinc-600">{t("tryon.result.empty")}</p>
+        <p className="max-w-xs text-sm leading-relaxed text-zinc-400">{t("tryon.result.empty.hint")}</p>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="rounded-2xl border border-zinc-200 bg-white p-3 min-h-[220px] sm:p-4">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-violet-600 mb-3">
-          ✨ {t("tryon.result")}
-        </p>
-        <div className="whitespace-pre-line text-sm leading-6 text-zinc-700">
-          {resultText}
+    <div className="flex flex-col gap-3">
+      <div className="flex items-center gap-2 border-b border-zinc-100 pb-3">
+        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-100">
+          <Sparkles size={18} className="text-violet-600" />
+        </div>
+        <div>
+          <p className="text-sm font-semibold text-zinc-900">{t("tryon.result")}</p>
+          <p className="text-xs text-zinc-500">{t("tryon.result.subtitle")}</p>
         </div>
       </div>
-
-      {generatedImageUrl ? (
-        <div className="rounded-2xl border border-zinc-200 bg-zinc-50 overflow-hidden">
-          <div className="relative h-56 sm:h-72">
-            <Image src={generatedImageUrl} alt="Outfit illustration" fill className="object-contain" />
-          </div>
-        </div>
-      ) : (
-        <button
-          onClick={onGenerateImage}
-          disabled={!onGenerateImage || isGeneratingImage}
-          className="flex items-center justify-center gap-2 rounded-xl bg-violet-600 py-3 text-sm font-semibold text-white hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
-        >
-          {isGeneratingImage ? t("tryon.button.loading") : t("tryon.generate")}
-        </button>
-      )}
+      <div className="max-h-[420px] overflow-y-auto rounded-xl bg-zinc-50/80 p-4 ring-1 ring-zinc-100">
+        <p className="whitespace-pre-line text-sm leading-7 text-zinc-700">{resultText}</p>
+      </div>
     </div>
   );
 }

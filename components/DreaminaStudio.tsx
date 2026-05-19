@@ -3,8 +3,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import Image from "next/image";
 import {
-  Sparkles, Shirt, Wand2, Upload, ChevronLeft, ChevronRight,
-  RotateCcw, Loader2, AlertCircle, History, Trash2, Download,
+  Sparkles, Shirt, Wand2, Upload,   RotateCcw, Loader2, AlertCircle, History, Trash2, Download,
   ZoomIn, Camera, X, Plus,
 } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
@@ -37,7 +36,6 @@ export default function DreaminaStudio() {
   const [error, setError] = useState<string | null>(null);
   const [showResult, setShowResult] = useState(false);
   const [modelUsed, setModelUsed] = useState<string | null>(null);
-  const [sliderPos, setSliderPos] = useState(50);
   const [showHistory, setShowHistory] = useState(false);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [showZoom, setShowZoom] = useState(false);
@@ -47,7 +45,6 @@ export default function DreaminaStudio() {
 
   const pi = useRef<HTMLInputElement>(null);
   const ci = useRef<HTMLInputElement>(null);
-  const cr = useRef<HTMLDivElement>(null);
   const vr = useRef<HTMLVideoElement>(null);
   const cc = useRef<HTMLCanvasElement>(null);
 
@@ -99,24 +96,21 @@ export default function DreaminaStudio() {
       const res = await fetch("/api/try-on", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode: "outfit", personImageBase64: personImage, clothImageBase64: clothImage }) });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Error");
-      const ru = data.resultBase64 ? `data:image/jpeg;base64,${data.resultBase64}` : data.resultImageUrl;
-      setResultImage(ru); setModelUsed(data.modelUsed); setShowResult(true); setSliderPos(50);
+      const ru = data.resultBase64
+        ? (data.resultImageUrl?.startsWith("data:")
+            ? data.resultImageUrl
+            : `data:image/png;base64,${data.resultBase64}`)
+        : data.resultImageUrl;
+      setResultImage(ru); setModelUsed(data.modelUsed); setShowResult(true);
       const ni: HistoryItem = { id: Date.now().toString(), personImage, clothImage, resultBase64: data.resultBase64 || "", modelUsed: data.modelUsed || "unknown", timestamp: Date.now() };
       const uh = [ni, ...loadHistory()]; saveHistory(uh); setHistory(uh);
     } catch (err: any) { setError(err.message || "Error"); }
     finally { setLoading(false); }
   };
-  const hr = () => { setPersonImage(null); setClothItems([]); setSelectedClothId(null); setResultImage(null); setShowResult(false); setError(null); setModelUsed(null); setSliderPos(50); };
+  const hr = () => { setPersonImage(null); setClothItems([]); setSelectedClothId(null); setResultImage(null); setShowResult(false); setError(null); setModelUsed(null); };
   const hd = () => { if (!resultImage) return; const a = document.createElement("a"); a.href = resultImage; a.download = `fitai-${Date.now()}.jpg`; a.click(); };
   const ch = () => { saveHistory([]); setHistory([]); };
-  const uhf = (item: HistoryItem) => { setPersonImage(item.personImage); setClothItems([{ id: nid(), dataUrl: item.clothImage }]); setSelectedClothId(null); setResultImage(item.resultBase64 ? `data:image/jpeg;base64,${item.resultBase64}` : null); setShowResult(!!item.resultBase64); setShowHistory(false); };
-  const hsm = (e: React.MouseEvent) => {
-    e.preventDefault(); const c = cr.current; if (!c) return;
-    const mv = (e: MouseEvent) => { const r = c.getBoundingClientRect(); setSliderPos(Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * 100); };
-    const up = () => { document.removeEventListener("mousemove", mv); document.removeEventListener("mouseup", up); };
-    document.addEventListener("mousemove", mv); document.addEventListener("mouseup", up);
-  };
-
+  const uhf = (item: HistoryItem) => { setPersonImage(item.personImage); setClothItems([{ id: nid(), dataUrl: item.clothImage }]); setSelectedClothId(null); setResultImage(item.resultBase64 ? `data:image/png;base64,${item.resultBase64}` : null); setShowResult(!!item.resultBase64); setShowHistory(false); };
   return (
     <div className="w-full max-w-6xl mx-auto animate-fade-in">
       {cameraTarget && (
@@ -159,7 +153,7 @@ export default function DreaminaStudio() {
               {history.map((item) => (
                 <button key={item.id} onClick={() => uhf(item)} className="shrink-0 w-20 group">
                   <div className="relative aspect-[3/4] rounded-xl overflow-hidden border border-zinc-200 bg-zinc-50 group-hover:border-violet-400 transition-all">
-                    {item.resultBase64 && <Image src={`data:image/jpeg;base64,${item.resultBase64}`} alt="" fill className="object-cover" />}
+                    {item.resultBase64 && <Image src={`data:image/png;base64,${item.resultBase64}`} alt="" fill className="object-cover" />}
                   </div>
                   <p className="text-[10px] text-zinc-400 mt-1 truncate">{new Date(item.timestamp).toLocaleTimeString()}</p>
                 </button>
@@ -246,21 +240,12 @@ export default function DreaminaStudio() {
 
           {showResult && resultImage && !loading && (
             <div className="space-y-4">
-              {personImage && (
-                <div ref={cr} className="relative rounded-xl overflow-hidden border border-zinc-200 select-none cursor-ew-resize" onMouseDown={hsm}>
-                  <div className="relative aspect-[3/4] w-full bg-zinc-50">
-                    <Image src={resultImage} alt="" fill className="object-contain" />
-                    <div className="absolute inset-0 overflow-hidden" style={{ width: `${sliderPos}%` }}>
-                      <Image src={personImage} alt="" fill className="object-contain" />
-                    </div>
-                    <div className="absolute top-0 bottom-0 w-0.5 bg-white shadow-lg z-10" style={{ left: `${sliderPos}%` }}>
-                      <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 bg-white rounded-full p-1 shadow-lg border border-zinc-200">
-                        <ChevronLeft size={14} className="text-zinc-600" /><ChevronRight size={14} className="text-zinc-600" />
-                      </div>
-                    </div>
-                  </div>
+              <div className="relative rounded-xl overflow-hidden border border-zinc-200 bg-zinc-50">
+                <div className="relative aspect-[3/4] w-full">
+                  <Image src={resultImage} alt={t("studio.result.after")} fill className="object-contain" />
                 </div>
-              )}
+              </div>
+
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   {modelUsed && <span className="tag tag-violet">{modelUsed}</span>}

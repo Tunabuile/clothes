@@ -1,9 +1,10 @@
 "use client";
 
 import Image from "next/image";
-import { Shirt, Trash2, Wand2 } from "lucide-react";
+import { Shirt, Trash2, Wand2, Calendar } from "lucide-react";
 import { ClothingItem } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n";
 
 interface ClothingCardProps {
   item: ClothingItem;
@@ -12,10 +13,13 @@ interface ClothingCardProps {
   isSelected?: boolean;
 }
 
-const conditionColor: Record<string, string> = {
-  New: "bg-green-100 text-green-700",
-  Good: "bg-blue-100 text-blue-700",
-  Worn: "bg-yellow-100 text-yellow-700",
+const conditionStyle: Record<string, string> = {
+  New: "bg-emerald-50 text-emerald-700 ring-emerald-200",
+  Mới: "bg-emerald-50 text-emerald-700 ring-emerald-200",
+  Good: "bg-sky-50 text-sky-700 ring-sky-200",
+  "Còn tốt": "bg-sky-50 text-sky-700 ring-sky-200",
+  Worn: "bg-amber-50 text-amber-700 ring-amber-200",
+  Cũ: "bg-amber-50 text-amber-700 ring-amber-200",
 };
 
 export default function ClothingCard({
@@ -24,90 +28,88 @@ export default function ClothingCard({
   onDelete,
   isSelected,
 }: ClothingCardProps) {
+  const { t } = useI18n();
   const daysSinceAdded = Math.floor(
     (Date.now() - new Date(item.addedAt).getTime()) / (1000 * 60 * 60 * 24)
   );
   const isDusty = daysSinceAdded > 90 && item.tryOnCount === 0;
 
   return (
-    <div
+    <article
       className={cn(
-        "group relative rounded-2xl border bg-white overflow-hidden transition-all hover:shadow-md",
-        isSelected
-          ? "border-violet-500 ring-2 ring-violet-300"
-          : "border-zinc-200",
-        isDusty && "border-orange-300"
+        "group relative overflow-hidden rounded-2xl border bg-white shadow-sm transition-all duration-200 hover:shadow-md",
+        isSelected ? "border-violet-400 ring-2 ring-violet-200" : "border-zinc-200/90",
+        isDusty && "border-amber-200"
       )}
     >
-      {/* Ảnh đồ */}
-      <div className="relative h-44 bg-zinc-50">
+      <div className="relative aspect-[4/5] bg-gradient-to-b from-zinc-50 to-white">
         <Image
           src={item.imageUrl}
           alt={item.type}
           fill
-          className="object-contain p-3"
+          className="object-contain p-4"
+          sizes="(max-width: 640px) 50vw, 20vw"
         />
 
-        {/* Badge bốc bụi */}
         {isDusty && (
-          <div className="absolute top-2 left-2 rounded-full bg-orange-500 px-2 py-0.5 text-xs font-medium text-white">
-            🌫️ Bốc bụi rồi!
-          </div>
+          <span className="absolute left-2 top-2 rounded-full bg-amber-500 px-2 py-0.5 text-[10px] font-semibold text-white shadow-sm">
+            {t("closet.dusty")}
+          </span>
         )}
 
-        {/* Actions overlay */}
-        <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="absolute inset-0 flex items-center justify-center gap-2 bg-zinc-900/45 opacity-0 backdrop-blur-[2px] transition-opacity group-hover:opacity-100">
           <button
+            type="button"
             onClick={() => onTryOn(item)}
-            className="flex items-center gap-1.5 rounded-full bg-violet-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-violet-700 transition"
+            className="inline-flex items-center gap-1.5 rounded-full bg-white px-3.5 py-2 text-xs font-semibold text-violet-700 shadow-lg transition hover:bg-violet-50"
           >
-            <Wand2 size={13} />
-            Thử đồ
+            <Wand2 size={14} />
+            {t("closet.tryon")}
           </button>
           <button
+            type="button"
             onClick={() => onDelete(item.id)}
-            className="rounded-full bg-white/20 p-1.5 text-white hover:bg-red-500 transition"
+            className="rounded-full bg-white/90 p-2 text-zinc-600 shadow-lg transition hover:bg-red-50 hover:text-red-600"
+            aria-label={t("closet.delete")}
           >
-            <Trash2 size={13} />
+            <Trash2 size={14} />
           </button>
         </div>
       </div>
 
-      {/* Info */}
-      <div className="p-3 flex flex-col gap-1.5">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1.5">
-            <Shirt size={13} className="text-zinc-400" />
-            <span className="text-sm font-semibold text-zinc-800">
-              {item.type}
-            </span>
+      <div className="space-y-2 border-t border-zinc-100 p-3.5">
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex min-w-0 items-center gap-1.5">
+            <Shirt size={14} className="shrink-0 text-zinc-400" />
+            <h3 className="truncate text-sm font-semibold text-zinc-900">{item.type}</h3>
           </div>
           <span
             className={cn(
-              "rounded-full px-2 py-0.5 text-xs font-medium",
-              conditionColor[item.condition] || "bg-zinc-100 text-zinc-600"
+              "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ring-1 ring-inset",
+              conditionStyle[item.condition] || "bg-zinc-100 text-zinc-600 ring-zinc-200"
             )}
           >
             {item.condition}
           </span>
         </div>
 
-        <div className="flex gap-2 text-xs text-zinc-400">
-          <span
-            className="rounded-full px-2 py-0.5"
-            style={{ backgroundColor: item.color.toLowerCase() === "white" ? "#f4f4f5" : item.color.toLowerCase() === "black" ? "#18181b" : "#f4f4f5", color: item.color.toLowerCase() === "black" ? "#fff" : "#52525b" }}
-          >
+        <div className="flex flex-wrap gap-1.5">
+          <span className="rounded-md bg-zinc-100 px-2 py-0.5 text-[11px] font-medium text-zinc-600">
             {item.color}
           </span>
-          <span className="rounded-full bg-zinc-100 px-2 py-0.5">
+          <span className="rounded-md bg-zinc-100 px-2 py-0.5 text-[11px] font-medium text-zinc-600">
             {item.material}
+          </span>
+          <span className="rounded-md bg-violet-50 px-2 py-0.5 text-[11px] font-medium text-violet-700">
+            {item.style}
           </span>
         </div>
 
-        <p className="text-xs text-zinc-400">
-          Đã thử: {item.tryOnCount} lần
+        <p className="flex items-center gap-1 text-[11px] text-zinc-400">
+          <Calendar size={11} />
+          {t("closet.tried", { count: item.tryOnCount })}
         </p>
       </div>
-    </div>
+    </article>
   );
 }

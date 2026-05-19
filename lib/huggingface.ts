@@ -7,7 +7,7 @@
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
 const OPENAI_TEXT_MODEL = process.env.OPENAI_TEXT_MODEL || "gpt-4o-mini";
 const OPENAI_VISION_MODEL = process.env.OPENAI_VISION_MODEL || "gpt-4o-mini";
-const OPENAI_IMAGE_MODEL = process.env.OPENAI_IMAGE_MODEL || "dall-e-3";
+const OPENAI_IMAGE_MODEL = process.env.OPENAI_IMAGE_MODEL || "gpt-image-1";
 
 const GROQ_API_KEY = process.env.GROQ_API_KEY || "";
 const GROQ_TEXT_MODEL = "llama-3.3-70b-versatile";
@@ -15,6 +15,7 @@ const GROQ_VISION_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct";
 
 const OPENAI_CHAT_API = "https://api.openai.com/v1/chat/completions";
 const OPENAI_IMAGE_API = "https://api.openai.com/v1/images/generations";
+const OPENAI_IMAGE_EDIT_API = "https://api.openai.com/v1/images/edits";
 const GROQ_API = "https://api.groq.com/openai/v1/chat/completions";
 
 // ─── OpenAI helpers ─────────────────────────────────────────────
@@ -232,23 +233,116 @@ async function callGroqVision(
   throw new Error("Groq vision response không hợp lệ");
 }
 
-// ─── generateImage: Chỉ dùng OpenAI DALL-E 3 ────
+// ─── generateImage: OpenAI (gpt-image-1 hoặc dall-e-3) ────
 
-export async function generateImage(prompt: string): Promise<string> {
+async function callImageAPI(model: string, prompt: string): Promise<string> {
+  const body: Record<string, unknown> = {
+    model,
+    prompt,
+    n: 1,
+    size: "1024x1024",
+  };
+  // dall-e-3 hỗ trợ response_format; gpt-image-1 trả b64_json mặc định, không nhận param này
+  if (model.startsWith("dall-e")) {
+    body.response_format = "b64_json";
+  }
+
   const res = await fetch(OPENAI_IMAGE_API, {
-    method: "POST", headers: openaiHeaders(),
-    body: JSON.stringify({ model: "dall-e-3", prompt, n: 1, size: "1024x1024" }),
+    method: "POST",
+    headers: openaiHeaders(),
+    body: JSON.stringify(body),
   });
+
   if (!res.ok) {
     const err = await res.text();
-    if (err.includes("does not exist")) throw new Error("Key không hỗ trợ DALL-E");
-    throw new Error(`DALL-E error ${res.status}: ${err.slice(0, 200)}`);
+    throw new Error(`OpenAI image error ${res.status}: ${err.slice(0, 300)}`);
   }
+
   const data = await res.json();
-  const url = data?.data?.[0]?.url;
-  if (!url) throw new Error("Không nhận được ảnh");
-  const imgRes = await fetch(url);
-  return Buffer.from(await imgRes.arrayBuffer()).toString("base64");
+  const item = data?.data?.[0];
+  if (item?.b64_json) return item.b64_json as string;
+  if (item?.url) {
+    const imgRes = await fetch(item.url as string);
+    return Buffer.from(await imgRes.arrayBuffer()).toString("base64");
+  }
+  throw new Error("Không nhận được ảnh từ OpenAI");
+}
+
+/** Chuẩn hóa base64 / data URL */
+export function toImageDataUrl(imageBase64: string, mime = "image/jpeg"): string {
+  if (imageBase64.startsWith("data:")) return imageBase64;
+  const raw = imageBase64.includes(",") ? imageBase64.split(",")[1] : imageBase64;
+  return `data:${mime};base64,${raw}`;
+}
+
+/** Tạo ảnh từ ảnh tham chiếu (virtual try-on, v.v.) */
+export async function editImagesWithReferences(
+  referenceImages: string[],
+  prompt: string,
+  options?: { size?: string; quality?: string; inputFidelity?: "high" | "low" }
+): Promise<string> {
+  const model = OPENAI_IMAGE_MODEL.startsWith("dall-e")
+    ? "gpt-image-1"
+    : OPENAI_IMAGE_MODEL;
+
+  const body: Record<string, unknown> = {
+    model,
+    images: referenceImages.map((img) => ({ image_url: toImageDataUrl(img) })),
+    prompt,
+    n: 1,
+    size: options?.size || "1024x1536",
+    quality: options?.quality || "high",
+  };
+  if (options?.inputFidelity && !model.startsWith("dall-e")) {
+    body.input_fidelity = options.inputFidelity;
+  }
+
+  const res = await fetch(OPENAI_IMAGE_EDIT_API, {
+    method: "POST",
+    headers: openaiHeaders(),
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`OpenAI image edit error ${res.status}: ${err.slice(0, 400)}`);
+  }
+
+  const data = await res.json();
+  const item = data?.data?.[0];
+  if (item?.b64_json) return item.b64_json as string;
+  if (item?.url) {
+    const imgRes = await fetch(item.url as string);
+    return Buffer.from(await imgRes.arrayBuffer()).toString("base64");
+  }
+  throw new Error("Không nhận được ảnh từ OpenAI");
+}
+
+export async function generateImage(prompt: string): Promise<string> {
+  const primary = OPENAI_IMAGE_MODEL;
+  const fallbacks =
+    primary === "dall-e-3"
+      ? ["gpt-image-1"]
+      : primary.startsWith("gpt-image")
+        ? ["dall-e-3"]
+        : [];
+
+  try {
+    return await callImageAPI(primary, prompt);
+  } catch (primaryErr) {
+    const msg = primaryErr instanceof Error ? primaryErr.message : "";
+    const modelMissing = msg.includes("does not exist") || msg.includes("invalid_value");
+    if (!modelMissing || fallbacks.length === 0) throw primaryErr;
+    for (const fb of fallbacks) {
+      try {
+        console.warn(`Image model ${primary} failed, retrying with ${fb}`);
+        return await callImageAPI(fb, prompt);
+      } catch {
+        /* try next */
+      }
+    }
+    throw primaryErr;
+  }
 }
 
 export { generateText };

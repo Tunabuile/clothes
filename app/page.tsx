@@ -1,13 +1,12 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import { Wand2, Plus, Shirt, Sparkles, ImagePlus, Recycle, Palette, Trash2, Globe } from "lucide-react";
+import { Wand2, Plus, Shirt, Sparkles, Recycle, Palette, Trash2, Globe } from "lucide-react";
 import ImageUploader from "@/components/ImageUploader";
 import MultiImageUploader, { UploadedImage } from "@/components/MultiImageUploader";
 import BodyForm from "@/components/BodyForm";
 import ClothingCard from "@/components/ClothingCard";
 import TryOnResult from "@/components/TryOnResult";
-import GenerateImageModal from "@/components/GenerateImageModal";
 import RecycleHub from "@/components/RecycleHub";
 import DreaminaStudio from "@/components/DreaminaStudio";
 import { ClothingItem } from "@/lib/types";
@@ -32,16 +31,11 @@ export default function Home() {
   const [weight, setWeight] = useState(60);
   const [gender, setGender] = useState(lang === "vi" ? "Nam" : "Male");
   const [resultText, setResultText] = useState("");
-  const [personDesc, setPersonDesc] = useState("");
-  const [clothDesc, setClothDesc] = useState("");
-  const [generatedImageUrl, setGeneratedImageUrl] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
-  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const [error, setError] = useState("");
   const [userRequest, setUserRequest] = useState("");
   const [closet, setCloset] = useState<ClothingItem[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [showGenerateModal, setShowGenerateModal] = useState(false);
 
   const handleClothImagesChange = (imgs: UploadedImage[]) => setClothImages(imgs);
 
@@ -73,38 +67,23 @@ export default function Home() {
     const si = clothImages.find(i => i.id === selectedClothId);
     const tb = clothItem?.imageBase64 ?? si?.base64 ?? clothBase64;
     if (!tb) { setError("Need clothing image!"); return; }
-    setIsProcessing(true); setResultText(""); setGeneratedImageUrl(""); setError("");
+    setIsProcessing(true); setResultText(""); setError("");
     try {
       const r = await fetch("/api/describe-outfit", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ personImageBase64: personBase64 || "", clothImageBase64: tb, height, weight, gender, userRequest, lang }) });
       const d = await r.json();
       if (!r.ok) throw new Error(d.error);
-      setResultText(d.resultText || ""); setPersonDesc(d.personDesc || ""); setClothDesc(d.clothDesc || "");
+      setResultText(d.resultText || "");
       if (clothItem) setCloset(p => p.map(c => c.id === clothItem.id ? { ...c, tryOnCount: c.tryOnCount + 1, lastTriedAt: new Date() } : c));
     } catch (err) { setError(err instanceof Error ? err.message : "Error"); }
     finally { setIsProcessing(false); }
-  }, [personBase64, clothBase64, clothImages, selectedClothId, clothMime, height, weight, userRequest]);
+  }, [personBase64, clothBase64, clothImages, selectedClothId, clothMime, height, weight, userRequest, gender, lang]);
 
   const handleDeleteFromCloset = (id: string) => setCloset(p => p.filter(c => c.id !== id));
-  const handleGenerateIllustration = useCallback(async () => {
-    if (!resultText) return; setIsGeneratingImage(true); setError("");
-    try {
-      const r = await fetch("/api/generate-image", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: resultText, style: "realistic", personDesc, clothDesc, gender }) });
-      const d = await r.json();
-      if (!r.ok) throw new Error(d.error);
-      setGeneratedImageUrl(`data:${d.mimeType};base64,${d.imageBase64}`);
-    } catch (err) { setError(err instanceof Error ? err.message : "Error"); }
-    finally { setIsGeneratingImage(false); }
-  }, [resultText, personDesc, clothDesc, gender]);
-  const handleClearCloset = () => { if (confirm("Delete all?")) setCloset([]); };
+  const handleClearCloset = () => { if (confirm(t("closet.confirm"))) setCloset([]); };
   const gOpts = lang === "vi" ? [{ v: "Nam", l: "Nam" }, { v: "Nữ", l: "Nữ" }] : [{ v: "Male", l: "Male" }, { v: "Female", l: "Female" }];
 
   return (
     <div className="min-h-screen" style={{ background: "#f5f0eb" }}>
-      {showGenerateModal && (
-        <GenerateImageModal onClose={() => setShowGenerateModal(false)}
-          onUseImage={(b, m, p) => handleClothImagesChange([...clothImages, { id: crypto.randomUUID(), base64: b, mimeType: m, previewUrl: p, name: "AI Generated" }])} />
-      )}
-
       {/* HEADER */}
       <div className="sticky top-0 z-30" style={{ background: "rgba(255,255,255,0.88)", backdropFilter: "blur(14px)", borderBottom: "1px solid #e8e4ef" }}>
         <div className="mx-auto max-w-6xl flex items-center justify-between px-4 py-3 sm:px-6">
@@ -142,7 +121,12 @@ export default function Home() {
         {activeTab === "studio" && <div className="animate-fade-in"><DreaminaStudio /></div>}
 
         {activeTab === "tryon" && (
-          <div className="animate-fade-in grid grid-cols-1 gap-5 lg:grid-cols-3">
+          <div className="animate-fade-in space-y-6">
+            <div>
+              <h2 className="text-xl font-bold text-zinc-900">{t("tryon.page.title")}</h2>
+              <p className="mt-1 text-sm text-zinc-500">{t("tryon.page.subtitle")}</p>
+            </div>
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
             <div className="flex flex-col gap-5 lg:col-span-1">
               <div style={{ background: "white", borderRadius: 16, border: "1px solid #e8e4ef", padding: 20, boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>
                 <ImageUploader label={t("tryon.person.label")} hint={t("tryon.person.hint")} previewUrl={personPreview} onImageChange={(b,_,p) => { setPersonBase64(b); setPersonPreview(p); }} />
@@ -181,11 +165,6 @@ export default function Home() {
                   style={{ width: "100%", marginTop: 8, border: "1px solid #ddd8e4", borderRadius: 12, padding: "10px 14px", fontSize: "0.9rem", minHeight: 80, resize: "none", outline: "none", background: "white" }} />
               </div>
 
-              <button onClick={() => setShowGenerateModal(true)}
-                style={{ border: "2px dashed #c4b5fd", borderRadius: 12, background: "#f5f3ff", padding: "12px 20px", color: "#7c3aed", fontWeight: 500, fontSize: "0.9rem", cursor: "pointer" }}>
-                <ImagePlus size={16} className="inline mr-1" /> {t("tryon.generate")}
-              </button>
-
               <div className="flex flex-col gap-2">
                 <button onClick={() => handleTryOn()} disabled={!clothBase64 || isProcessing}
                   style={{ background: "linear-gradient(135deg,#7c3aed,#5b21b6)", color: "white", border: "none", borderRadius: 12, padding: "14px 24px", fontWeight: 600, fontSize: "0.9rem", boxShadow: "0 4px 14px rgba(124,58,237,0.35)", cursor: "pointer", opacity: (!clothBase64 || isProcessing) ? 0.5 : 1 }}>
@@ -206,38 +185,42 @@ export default function Home() {
 
             <div className="lg:col-span-1">
               <div style={{ background: "white", borderRadius: 16, border: "1px solid #e8e4ef", padding: 20, boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>
-                <TryOnResult resultText={resultText} generatedImageUrl={generatedImageUrl} isLoading={isProcessing} isGeneratingImage={isGeneratingImage} onGenerateImage={handleGenerateIllustration} />
+                <TryOnResult resultText={resultText} isLoading={isProcessing} />
               </div>
             </div>
+          </div>
           </div>
         )}
 
         {activeTab === "closet" && (
-          <div className="animate-fade-in">
+          <div className="animate-fade-in space-y-6">
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h2 className="text-xl font-bold" style={{ color: "#1a1a2e" }}>{t("closet.title")}</h2>
-                <p className="text-sm mt-0.5" style={{ color: "#999" }}>{closet.length} {t("closet.count")}</p>
+                <h2 className="text-xl font-bold text-zinc-900">{t("closet.title")}</h2>
+                <p className="mt-1 text-sm text-zinc-500">{t("closet.subtitle")}</p>
+                <p className="mt-2 inline-flex items-center rounded-full bg-violet-50 px-3 py-1 text-xs font-semibold text-violet-700 ring-1 ring-violet-200">
+                  {closet.length} {t("closet.count")}
+                </p>
               </div>
               <div className="flex gap-2">
                 {closet.length > 0 && (
-                  <button onClick={handleClearCloset} style={{ border: "1px solid #fecaca", borderRadius: 12, padding: "8px 16px", color: "#dc2626", fontWeight: 500, fontSize: "0.85rem", background: "white", cursor: "pointer" }}>
-                    <Trash2 size={14} className="inline mr-1" /> {t("closet.clear")}
+                  <button type="button" onClick={handleClearCloset} className="inline-flex items-center gap-1.5 rounded-xl border border-red-200 bg-white px-4 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-50">
+                    <Trash2 size={14} /> {t("closet.clear")}
                   </button>
                 )}
-                <button onClick={() => setActiveTab("tryon")} style={{ background: "linear-gradient(135deg,#7c3aed,#5b21b6)", color: "white", border: "none", borderRadius: 12, padding: "8px 16px", fontWeight: 600, fontSize: "0.85rem", boxShadow: "0 4px 12px rgba(124,58,237,0.3)", cursor: "pointer" }}>
-                  <Plus size={14} className="inline mr-1" /> {t("closet.add")}
+                <button type="button" onClick={() => setActiveTab("tryon")} className="btn-primary inline-flex items-center gap-1.5 px-4 py-2.5 text-sm">
+                  <Plus size={14} /> {t("closet.add")}
                 </button>
               </div>
             </div>
 
             {closet.length === 0 ? (
-              <div style={{ border: "2px dashed #ddd8e4", borderRadius: 16, padding: "80px 20px", textAlign: "center", background: "rgba(255,255,255,0.5)" }}>
-                <div style={{ background: "#f0ece6", borderRadius: "50%", padding: 24, display: "inline-block", marginBottom: 16 }}>
-                  <Shirt size={40} style={{ color: "#ccc" }} />
+              <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-zinc-200 bg-white/60 px-6 py-20 text-center">
+                <div className="mb-4 rounded-2xl bg-zinc-100 p-5 ring-1 ring-zinc-200/80">
+                  <Shirt size={40} className="text-zinc-300" />
                 </div>
-                <p className="font-semibold" style={{ color: "#777" }}>{t("closet.empty")}</p>
-                <p className="text-sm mt-1" style={{ color: "#aaa" }}>{t("closet.empty.hint")}</p>
+                <p className="font-semibold text-zinc-600">{t("closet.empty")}</p>
+                <p className="mt-1 max-w-sm text-sm text-zinc-400">{t("closet.empty.hint")}</p>
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
