@@ -232,74 +232,26 @@ async function callGroqVision(
   throw new Error("Groq vision response không hợp lệ");
 }
 
-const HF_INFERENCE_BASE = "https://api-inference.huggingface.co/models";
-const HF_TOKEN = process.env.HUGGINGFACE_TOKEN || "";
-const HF_IMAGE_MODEL = process.env.HUGGINGFACE_IMAGE_MODEL || "black-forest-labs/FLUX.1-schnell";
-
-function hfImageHeaders() {
-  return {
-    "Content-Type": "application/json",
-    ...(HF_TOKEN && { Authorization: `Bearer ${HF_TOKEN}` }),
-  };
-}
-
-// ─── generateImage: DALL-E 3 → fallback HuggingFace (free) ───
+// ─── generateImage: FLUX.1-schnell (HuggingFace free) ────
 
 export async function generateImage(prompt: string): Promise<string> {
-  // Try DALL-E 3 first
-  try {
-    return await callDalle3(prompt);
-  } catch (openAIError: any) {
-    if (openAIError?.message?.includes("429") || openAIError?.message?.includes("insufficient_quota")) {
-      console.warn("OpenAI DALL-E quota exceeded, falling back to HuggingFace free inference");
-      return await callHFImage(prompt);
-    }
-    throw openAIError;
-  }
-}
+  const model = "black-forest-labs/FLUX.1-schnell";
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  const HF_TOKEN = process.env.HUGGINGFACE_TOKEN || "";
+  if (HF_TOKEN) headers["Authorization"] = `Bearer ${HF_TOKEN}`;
 
-async function callDalle3(prompt: string): Promise<string> {
-  const response = await fetch(OPENAI_IMAGE_API, {
+  const res = await fetch(`https://api-inference.huggingface.co/models/${model}`, {
     method: "POST",
-    headers: openaiHeaders(),
-    body: JSON.stringify({
-      model: OPENAI_IMAGE_MODEL,
-      prompt: prompt,
-      n: 1,
-      size: "1024x1024",
-    }),
+    headers,
+    body: JSON.stringify({ inputs: prompt }),
   });
 
-  if (!response.ok) {
-    const err = await response.text();
-    throw new Error(`OpenAI Image error ${response.status}: ${err.slice(0, 400)}`);
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`FLUX error ${res.status}: ${err.slice(0, 400)}`);
   }
 
-  const data = await response.json();
-  const imageUrl = data?.data?.[0]?.url;
-  if (typeof imageUrl !== "string") throw new Error("OpenAI image response không hợp lệ");
-  
-  const imgRes = await fetch(imageUrl);
-  const imgBuffer = await imgRes.arrayBuffer();
-  return Buffer.from(imgBuffer).toString("base64");
-}
-
-async function callHFImage(prompt: string): Promise<string> {
-  const response = await fetch(
-    `${HF_INFERENCE_BASE}/${HF_IMAGE_MODEL}`,
-    {
-      method: "POST",
-      headers: hfImageHeaders(),
-      body: JSON.stringify({ inputs: prompt }),
-    }
-  );
-
-  if (!response.ok) {
-    const err = await response.text();
-    throw new Error(`HF Image error ${response.status}: ${err.slice(0, 400)}`);
-  }
-
-  const buffer = await response.arrayBuffer();
+  const buffer = await res.arrayBuffer();
   return Buffer.from(buffer).toString("base64");
 }
 
