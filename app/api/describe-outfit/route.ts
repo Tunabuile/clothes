@@ -8,7 +8,7 @@ export async function POST(req: NextRequest) {
 
     if (!clothImageBase64) {
       return NextResponse.json(
-        { error: "Cần ảnh quần áo" },
+        { error: lang === "vi" ? "Cần ảnh quần áo" : "Clothing image required" },
         { status: 400 }
       );
     }
@@ -21,7 +21,8 @@ export async function POST(req: NextRequest) {
         personDesc = await captionImage(personImageBase64);
       } catch (e: any) {
         console.error("Caption person error:", e);
-        return NextResponse.json({ error: `Lỗi đọc ảnh người: ${e.message}` }, { status: 500 });
+        const errMsg = isVi ? `Lỗi đọc ảnh người: ${e.message}` : `Error reading person image: ${e.message}`;
+        return NextResponse.json({ error: errMsg }, { status: 500 });
       }
     }
 
@@ -31,7 +32,8 @@ export async function POST(req: NextRequest) {
         clothDesc = await captionImage(clothImageBase64);
       } catch (e: any) {
         console.error("Caption cloth error:", e);
-        return NextResponse.json({ error: `Lỗi đọc ảnh quần áo: ${e.message}` }, { status: 500 });
+        const errMsg = isVi ? `Lỗi đọc ảnh quần áo: ${e.message}` : `Error reading clothing image: ${e.message}`;
+        return NextResponse.json({ error: errMsg }, { status: 500 });
       }
     }
 
