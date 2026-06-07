@@ -17,11 +17,20 @@ export default function BodyForm({ height, weight, onChange }: BodyFormProps) {
 
   const bmiColor = bmi === null ? "text-zinc-400" : bmi < 18.5 ? "text-blue-500" : bmi < 23 ? "text-green-500" : bmi < 27.5 ? "text-yellow-500" : "text-red-500";
 
+  const bodyTypeKeys: Record<string, string> = {
+    "Gầy": "tryon.bmi.underweight",
+    "Bình thường": "tryon.bmi.normal",
+    "Thừa cân": "tryon.bmi.overweight",
+    "Béo phì": "tryon.bmi.obese",
+  };
+
+  const translatedBodyType = bodyType ? t(bodyTypeKeys[bodyType] || "tryon.bmi.normal") : "";
+
   return (
     <div className="card p-5 space-y-4">
       <h3 className="font-semibold text-zinc-800 text-sm flex items-center gap-2">
         <span className="w-1.5 h-5 bg-violet-500 rounded-full" />
-        {t("tryon.height")}
+        {t("tryon.height")} & {t("tryon.weight")}
       </h3>
 
       <div className="grid grid-cols-2 gap-4">
@@ -42,18 +51,18 @@ export default function BodyForm({ height, weight, onChange }: BodyFormProps) {
       </div>
 
       {bmi && (
-        <div className="flex items-center justify-between rounded-xl bg-gradient-to-r from-zinc-50 to-violet-50 border border-zinc-100 px-4 py-3">
+        <div className="flex items-center justify-between rounded-xl bg-gradient-to-r from-zinc-50 to-violet-50 border border-violet-100/50 px-4 py-3 shadow-inner">
           <div>
-            <p className="text-xs text-zinc-400">BMI</p>
-            <p className={cn("text-2xl font-bold", bmiColor)}>{bmi}</p>
+            <p className="text-[10px] uppercase font-bold tracking-wider text-zinc-400">BMI</p>
+            <p className={cn("text-2xl font-black", bmiColor)}>{bmi}</p>
+          </div>
+          <div className="text-center">
+            <p className="text-[10px] uppercase font-bold tracking-wider text-zinc-400">{t("tryon.bmi.status")}</p>
+            <p className={cn("text-sm font-bold mt-1", bmiColor)}>{translatedBodyType}</p>
           </div>
           <div className="text-right">
-            <p className="text-xs text-zinc-400">{t("tryon.gender")}</p>
-            <p className={cn("text-sm font-semibold", bmiColor)}>{bodyType}</p>
-          </div>
-          <div className="text-right">
-            <p className="text-xs text-zinc-400">{t("tryon.height")}</p>
-            <p className="text-sm font-semibold text-zinc-700">{height} cm</p>
+            <p className="text-[10px] uppercase font-bold tracking-wider text-zinc-400">{t("tryon.height")}</p>
+            <p className="text-sm font-bold text-zinc-700 mt-1">{height} cm</p>
           </div>
         </div>
       )}

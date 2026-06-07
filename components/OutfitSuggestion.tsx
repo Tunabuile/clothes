@@ -180,23 +180,30 @@ export default function OutfitSuggestion({
   return (
     <div className="flex flex-col gap-6">
       {/* Header + Controls */}
-      <div className="rounded-2xl border border-violet-100 bg-gradient-to-br from-violet-50 to-pink-50 p-5">
-        <div className="flex items-center gap-2 mb-4">
-          <div className="rounded-xl bg-violet-600 p-2">
-            <Brain size={18} className="text-white" />
+      <div className="rounded-2xl border border-violet-200/60 overflow-hidden" style={{background:"linear-gradient(135deg,rgba(139,92,246,0.08) 0%,rgba(99,102,241,0.06) 50%,rgba(236,72,153,0.06) 100%)"}}>
+        <div className="p-5">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="relative">
+              <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-violet-500 to-pink-500 blur-sm opacity-50" />
+              <div className="relative rounded-xl bg-gradient-to-br from-violet-600 to-indigo-600 p-2.5 shadow-lg">
+                <Brain size={18} className="text-white" />
+              </div>
+            </div>
+            <div>
+              <h3 className="font-extrabold text-zinc-900 gradient-text">AI Stylist</h3>
+              <p className="text-xs text-violet-500 font-medium">
+                Phân tích {closet.length} món đồ và tư duy phối outfit
+              </p>
+            </div>
+            <div className="ml-auto flex items-center gap-1 rounded-full bg-gradient-to-r from-violet-100 to-pink-100 px-2.5 py-1 text-[10px] font-bold text-violet-700 border border-violet-200">
+              ✨ SMART
+            </div>
           </div>
-          <div>
-            <h3 className="font-bold text-zinc-900">AI Stylist</h3>
-            <p className="text-xs text-zinc-400">
-              Phân tích {closet.length} món đồ và tư duy phối outfit
-            </p>
-          </div>
-        </div>
 
         <div className="grid grid-cols-2 gap-3 mb-4">
           {/* Dịp */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-zinc-600">
+            <label className="text-xs font-bold text-violet-700">
               🎯 Dịp mặc
             </label>
             <div className="flex flex-wrap gap-1.5">
@@ -205,10 +212,10 @@ export default function OutfitSuggestion({
                   key={o}
                   onClick={() => setOccasion(o)}
                   className={cn(
-                    "rounded-full px-3 py-1 text-xs font-medium transition",
+                    "rounded-full px-3 py-1 text-xs font-bold transition-all duration-150 border",
                     occasion === o
-                      ? "bg-violet-600 text-white"
-                      : "bg-white border border-zinc-200 text-zinc-500 hover:border-violet-400"
+                      ? "bg-gradient-to-r from-violet-600 to-indigo-600 text-white border-transparent shadow-sm shadow-violet-200"
+                      : "bg-white border-violet-100 text-zinc-500 hover:border-violet-400 hover:text-violet-600"
                   )}
                 >
                   {o}
@@ -219,7 +226,7 @@ export default function OutfitSuggestion({
 
           {/* Thời tiết */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-zinc-600">
+            <label className="text-xs font-bold text-sky-700">
               🌤️ Thời tiết
             </label>
             <div className="flex flex-wrap gap-1.5">
@@ -228,10 +235,10 @@ export default function OutfitSuggestion({
                   key={w}
                   onClick={() => setWeather(w)}
                   className={cn(
-                    "rounded-full px-3 py-1 text-xs font-medium transition",
+                    "rounded-full px-3 py-1 text-xs font-bold transition-all duration-150 border",
                     weather === w
-                      ? "bg-violet-600 text-white"
-                      : "bg-white border border-zinc-200 text-zinc-500 hover:border-violet-400"
+                      ? "bg-gradient-to-r from-sky-500 to-cyan-500 text-white border-transparent shadow-sm shadow-sky-200"
+                      : "bg-white border-sky-100 text-zinc-500 hover:border-sky-400 hover:text-sky-600"
                   )}
                 >
                   {w}
@@ -244,7 +251,8 @@ export default function OutfitSuggestion({
         <button
           onClick={handleSuggest}
           disabled={isLoading || closet.length < 2}
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-violet-600 py-3 text-sm font-semibold text-white shadow-lg shadow-violet-200 hover:bg-violet-700 disabled:opacity-40 disabled:cursor-not-allowed transition"
+          className="flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-bold text-white shadow-lg disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:-translate-y-0.5"
+          style={{background: isLoading || closet.length < 2 ? "#a78bfa" : "linear-gradient(135deg,#8b5cf6,#6366f1,#ec4899)", boxShadow: "0 6px 20px rgba(139,92,246,0.35)"}}
         >
           <Brain size={16} />
           {isLoading
@@ -259,10 +267,11 @@ export default function OutfitSuggestion({
         )}
 
         {closet.length < 2 && (
-          <p className="mt-2 text-center text-xs text-zinc-400">
+          <p className="mt-2 text-center text-xs text-violet-400 font-medium">
             Thêm ít nhất 2 món đồ vào tủ để AI phối
           </p>
         )}
+        </div>
       </div>
 
       {/* Loading state */}
@@ -509,12 +518,12 @@ export default function OutfitSuggestion({
 
       {/* Empty state khi chưa suggest */}
       {!isLoading && combos.length === 0 && !error && (
-        <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-zinc-200 py-12">
-          <div className="rounded-full bg-zinc-100 p-5">
-            <Sparkles size={28} className="text-zinc-300" />
+        <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-violet-200 py-12" style={{background:"linear-gradient(135deg,rgba(245,243,255,0.8),rgba(253,242,248,0.8))"}}>
+          <div className="rounded-2xl bg-gradient-to-br from-violet-100 to-pink-100 p-5 shadow-inner">
+            <Sparkles size={28} className="text-violet-400" />
           </div>
           <div className="text-center">
-            <p className="font-semibold text-zinc-500">
+            <p className="font-bold text-violet-700">
               AI chưa phân tích tủ đồ
             </p>
             <p className="text-sm text-zinc-400 mt-1">
