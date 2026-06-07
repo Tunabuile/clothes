@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import { Wand2, Plus, Shirt, Sparkles, Recycle, Palette, Trash2, Globe } from "lucide-react";
+import { Wand2, Plus, Shirt, Sparkles, Recycle, Palette, Trash2, Globe, Moon, Sun } from "lucide-react";
 import ImageUploader from "@/components/ImageUploader";
 import MultiImageUploader, { UploadedImage } from "@/components/MultiImageUploader";
 import BodyForm from "@/components/BodyForm";
@@ -14,6 +14,7 @@ import AIStyleProfile from "@/components/AIStyleProfile";
 import { ClothingItem } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useI18n, type Lang } from "@/lib/i18n";
+import { useTheme } from "@/lib/theme";
 
 type Tab = "tryon" | "closet" | "studio" | "recycle";
 
@@ -28,6 +29,7 @@ const TAB_COLORS: Record<Tab, { active: string; bg: string; icon: string; dot: s
 
 export default function Home() {
   const { t, lang, setLang } = useI18n();
+  const { theme, toggleTheme } = useTheme();
   const [activeTab, setActiveTab] = useState<Tab>("studio");
   const [closetSubTab, setClosetSubTab] = useState<"collection" | "stylist" | "profile">("collection");
   const [personBase64, setPersonBase64] = useState("");
@@ -140,24 +142,24 @@ export default function Home() {
   return (
     <div className="min-h-screen pb-20 sm:pb-0" style={{position:"relative", zIndex:1}}>
       {/* HEADER */}
-      <div className="sticky top-0 z-30 border-b border-violet-200/40" style={{background:"rgba(255,255,255,0.82)", backdropFilter:"blur(20px)", WebkitBackdropFilter:"blur(20px)"}}>
-        <div className="mx-auto max-w-6xl flex items-center justify-between px-4 py-3 sm:px-6">
+      <div className="sticky top-0 z-30 border-b" style={{background:"var(--header-bg)", backdropFilter:"blur(20px)", WebkitBackdropFilter:"blur(20px)", borderColor:"var(--header-border)"}}>
+        <div className="mx-auto max-w-6xl flex items-center justify-between px-4 py-2.5 sm:px-6 gap-3">
           {/* Logo */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5 shrink-0">
             <div className="relative">
-              <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-violet-500 to-pink-500 blur-md opacity-40" />
-              <div className="relative bg-gradient-to-br from-violet-600 via-purple-600 to-pink-600 rounded-2xl p-2.5 shadow-lg">
-                <Sparkles size={18} className="text-white" />
+              <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-violet-500 to-pink-500 blur-md opacity-40" />
+              <div className="relative bg-gradient-to-br from-violet-600 via-purple-600 to-pink-600 rounded-xl p-2 shadow-lg">
+                <Sparkles size={16} className="text-white" />
               </div>
             </div>
-            <div>
-              <h1 className="text-base font-extrabold tracking-tight leading-none gradient-text">FitAI</h1>
-              <p className="text-[10px] text-violet-400 font-semibold mt-0.5">{t("app.subtitle")}</p>
+            <div className="hidden xs:block">
+              <h1 className="text-sm font-extrabold tracking-tight leading-none text-violet-600 dark:text-violet-400">FitAI</h1>
+              <p className="text-[9px] font-semibold mt-0.5" style={{color:"var(--text-muted)"}}>{t("app.subtitle")}</p>
             </div>
           </div>
 
-          {/* TABS */}
-          <div className="hidden sm:flex items-center gap-1.5 bg-white/60 rounded-2xl p-1.5 border border-violet-100/80 shadow-sm shadow-violet-50">
+          {/* TABS — desktop */}
+          <div className="hidden sm:flex items-center gap-1 rounded-2xl p-1 border flex-1 max-w-md mx-auto" style={{background:"var(--surface-alpha)", borderColor:"var(--border-card)"}}>
             {(["studio", "tryon", "closet", "recycle"] as Tab[]).map(tab => {
               const Icon = TAB_ICONS[tab];
               const isActive = activeTab === tab;
@@ -167,16 +169,17 @@ export default function Home() {
                   key={tab}
                   onClick={() => setActiveTab(tab)}
                   className={cn(
-                    "flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition-all duration-200 border",
+                    "flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-xl transition-all duration-200 border flex-1 justify-center",
                     isActive
                       ? `${colors.bg} ${colors.active} shadow-sm`
-                      : "text-zinc-400 border-transparent hover:text-zinc-700 hover:bg-zinc-50"
+                      : "border-transparent hover:bg-zinc-100 dark:hover:bg-zinc-800"
                   )}
+                  style={!isActive ? {color:"var(--text-muted)"} : undefined}
                 >
-                  <Icon size={14} className={isActive ? colors.icon : ""} />
-                  <span>{t(`tab.${tab}`)}</span>
+                  <Icon size={13} />
+                  <span className="hidden md:inline">{t(`tab.${tab}`)}</span>
                   {tab === "closet" && closet.length > 0 && (
-                    <span className={cn("rounded-full text-[9px] font-black px-1.5 py-0.5 text-white", colors.dot)}>
+                    <span className={cn("rounded-full text-[9px] font-black px-1.5 py-0.5 text-white hidden md:inline", colors.dot)}>
                       {closet.length}
                     </span>
                   )}
@@ -185,57 +188,70 @@ export default function Home() {
             })}
           </div>
 
-          {/* Language Switcher in Header */}
-          <div className="hidden md:flex items-center gap-1 bg-white/60 p-1 rounded-xl border border-violet-100/80 shadow-sm">
-            <Globe size={13} className="text-violet-300 ml-2 mr-1" />
-            {(["vi", "en"] as Lang[]).map(l => (
-              <button
-                key={l}
-                onClick={() => setLang(l)}
-                className={cn(
-                  "px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all",
-                  lang === l
-                    ? "bg-gradient-to-br from-violet-600 to-indigo-600 text-white shadow-sm"
-                    : "text-zinc-500 hover:text-violet-700"
-                )}
-              >
-                {l === "vi" ? "VI" : "EN"}
-              </button>
-            ))}
+          {/* Right controls: Lang + Theme */}
+          <div className="flex items-center gap-1.5 shrink-0">
+            {/* Language */}
+            <div className="flex items-center gap-0.5 rounded-xl p-1 border" style={{background:"var(--surface-alpha)", borderColor:"var(--border-card)"}}>
+              <Globe size={11} style={{color:"var(--text-muted)"}} className="ml-1 mr-0.5" />
+              {(["vi", "en"] as Lang[]).map(l => (
+                <button
+                  key={l}
+                  onClick={() => setLang(l)}
+                  className={cn(
+                    "px-2 py-1 text-[10px] font-black rounded-lg transition-all min-h-[30px]",
+                    lang === l
+                      ? "bg-gradient-to-br from-violet-600 to-indigo-600 text-white shadow-sm"
+                      : "hover:bg-zinc-100"
+                  )}
+                  style={lang !== l ? {color:"var(--text-muted)"} : undefined}
+                >
+                  {l === "vi" ? "VI" : "EN"}
+                </button>
+              ))}
+            </div>
+
+            {/* Dark/Light toggle */}
+            <button
+              onClick={toggleTheme}
+              className="theme-toggle"
+              aria-label="Toggle dark mode"
+              title={theme === "dark" ? "Chuyển sang sáng" : "Chuyển sang tối"}
+            >
+              {theme === "dark"
+                ? <Sun size={16} className="text-yellow-400" />
+                : <Moon size={16} className="text-violet-500" />
+              }
+            </button>
           </div>
         </div>
       </div>
 
-      <main className="mx-auto max-w-6xl px-4 py-6 pb-28 sm:px-6 sm:py-8 sm:pb-8">
+      <main className="mx-auto max-w-6xl px-4 py-5 pb-28 sm:px-6 sm:py-7 sm:pb-8" style={{position:"relative", zIndex:1}}>
         {activeTab === "studio" && (
           <div className="animate-fade-in">
-            <div className="mb-6 rounded-2xl p-5 section-header-studio">
-              <div className="flex items-center gap-3">
-                <div className="rounded-xl bg-gradient-to-br from-violet-600 to-indigo-600 p-2.5 shadow-lg shadow-violet-200">
-                  <Palette size={18} className="text-white" />
-                </div>
-                <div>
-                  <h2 className="text-xl font-extrabold gradient-text">{t("tab.studio")}</h2>
-                  <p className="text-xs text-violet-500 font-medium mt-0.5">{t("studio.title")}</p>
-                </div>
-                <span className="ml-auto badge-studio">FREE</span>
+            <div className="mb-5 rounded-2xl p-4 border flex items-center gap-3" style={{background:"var(--surface-alpha)", borderColor:"var(--border-card)"}}>
+              <div className="rounded-xl bg-gradient-to-br from-violet-600 to-indigo-600 p-2.5 shadow-lg shadow-violet-200 shrink-0">
+                <Palette size={17} className="text-white" />
               </div>
+              <div className="min-w-0 flex-1">
+                <h2 className="text-lg font-extrabold text-violet-600">{t("tab.studio")}</h2>
+                <p className="text-xs font-medium mt-0.5 truncate" style={{color:"var(--text-muted)"}}>{t("studio.title")}</p>
+              </div>
+              <span className="badge-studio shrink-0">FREE</span>
             </div>
             <DreaminaStudio />
           </div>
         )}
 
         {activeTab === "tryon" && (
-          <div className="animate-fade-in space-y-6">
-            <div className="rounded-2xl p-5 section-header-tryon">
-              <div className="flex items-center gap-3">
-                <div className="rounded-xl bg-gradient-to-br from-sky-500 to-emerald-500 p-2.5 shadow-lg shadow-sky-200">
-                  <Wand2 size={18} className="text-white" />
-                </div>
-                <div>
-                  <h2 className="text-xl font-extrabold" style={{background:"linear-gradient(135deg,#0ea5e9,#10b981)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent"}}>{t("tryon.page.title")}</h2>
-                  <p className="text-xs text-sky-500 font-medium mt-0.5">{t("tryon.page.subtitle")}</p>
-                </div>
+          <div className="animate-fade-in space-y-5">
+            <div className="rounded-2xl p-4 border flex items-center gap-3" style={{background:"var(--surface-alpha)", borderColor:"var(--border-card)"}}>
+              <div className="rounded-xl bg-gradient-to-br from-sky-500 to-emerald-500 p-2.5 shadow-lg shadow-sky-200 shrink-0">
+                <Wand2 size={17} className="text-white" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <h2 className="text-lg font-extrabold text-sky-600">{t("tryon.page.title")}</h2>
+                <p className="text-xs font-medium mt-0.5 truncate" style={{color:"var(--text-muted)"}}>{t("tryon.page.subtitle")}</p>
               </div>
             </div>
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -370,19 +386,20 @@ export default function Home() {
         )}
 
         {activeTab === "closet" && (
-          <div className="animate-fade-in space-y-6">
+          <div className="animate-fade-in space-y-5">
             {/* Sub-Navigation inside Closet tab */}
-            <div className="flex border-b border-pink-100 gap-6 overflow-x-auto pb-px">
+            <div className="flex gap-1 overflow-x-auto pb-1" style={{borderBottom:"1.5px solid var(--border-card)"}}>
               {(["collection", "stylist", "profile"] as const).map(sub => (
                 <button
                   key={sub}
                   onClick={() => setClosetSubTab(sub)}
                   className={cn(
-                    "pb-3 text-sm font-bold border-b-2 transition-all relative shrink-0",
+                    "pb-3 px-3 text-sm font-bold border-b-2 transition-all relative shrink-0 min-h-[44px]",
                     closetSubTab === sub
                       ? "border-pink-500 text-pink-600"
-                      : "border-transparent text-zinc-400 hover:text-zinc-600"
+                      : "border-transparent hover:text-zinc-700"
                   )}
+                  style={closetSubTab !== sub ? {color:"var(--text-muted)"} : undefined}
                 >
                   {t(`closet.tab.${sub}`)}
                   {sub === "collection" && closet.length > 0 && (
@@ -396,21 +413,22 @@ export default function Home() {
 
             {/* Sub-Tab 1: Collection Grid */}
             {closetSubTab === "collection" && (
-              <div className="space-y-6">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="space-y-5">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <h2 className="text-xl font-extrabold" style={{background:"linear-gradient(135deg,#ec4899,#f43f5e)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent"}}>{t("closet.title")}</h2>
-                    <p className="mt-1 text-sm text-zinc-500">{t("closet.subtitle")}</p>
-                    <p className="mt-2 inline-flex items-center rounded-full bg-gradient-to-r from-pink-50 to-rose-50 px-3 py-1 text-xs font-bold text-pink-600 ring-1 ring-pink-200">
+                    <h2 className="text-xl font-extrabold text-pink-600">{t("closet.title")}</h2>
+                    <p className="mt-0.5 text-sm" style={{color:"var(--text-muted)"}}>{t("closet.subtitle")}</p>
+                    <span className="mt-2 inline-flex items-center rounded-full bg-pink-50 px-3 py-1 text-xs font-bold text-pink-600 ring-1 ring-pink-200">
                       {closet.length} {t("closet.count")}
-                    </p>
+                    </span>
                   </div>
                   <div className="flex gap-2">
                     {closet.length > 0 && (
                       <button
                         type="button"
                         onClick={handleClearCloset}
-                        className="inline-flex items-center gap-1.5 rounded-xl border border-red-200 bg-white px-4 py-2.5 text-xs font-bold text-red-500 hover:bg-red-50 transition shadow-sm"
+                        className="inline-flex items-center gap-1.5 rounded-xl border border-red-200 px-4 py-2.5 text-xs font-bold text-red-500 hover:bg-red-50 transition min-h-[44px]"
+                        style={{background:"var(--surface)"}}
                       >
                         <Trash2 size={13} />
                         {t("closet.clear")}
@@ -488,9 +506,9 @@ export default function Home() {
         )}
       </main>
 
-      {/* MOBILE NAV */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-violet-100/60 sm:hidden" style={{background:"rgba(255,255,255,0.92)", backdropFilter:"blur(20px)", WebkitBackdropFilter:"blur(20px)"}}>
-        <div className="flex items-center justify-around px-2 py-1.5">
+      {/* MOBILE BOTTOM NAV */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 border-t sm:hidden" style={{background:"var(--nav-bg)", backdropFilter:"blur(20px)", WebkitBackdropFilter:"blur(20px)", borderColor:"var(--header-border)"}}>
+        <div className="flex items-stretch justify-around px-1 pt-1 pb-safe">
           {(["studio", "tryon", "closet", "recycle"] as Tab[]).map(tab => {
             const Icon = TAB_ICONS[tab];
             const isActive = activeTab === tab;
@@ -500,34 +518,55 @@ export default function Home() {
                 key={tab}
                 onClick={() => setActiveTab(tab)}
                 className={cn(
-                  "flex flex-col items-center gap-0.5 py-1.5 px-3 rounded-xl transition-all duration-200",
-                  isActive ? colors.active : "text-zinc-400"
+                  "flex flex-col items-center gap-0.5 py-2 px-2 rounded-xl transition-all duration-200 flex-1 relative",
+                  isActive ? colors.active : ""
                 )}
+                style={!isActive ? {color:"var(--text-muted)"} : undefined}
               >
-                <div className={cn("p-1.5 rounded-xl transition-all", isActive ? `${colors.bg} border` : "")}>
-                  <Icon size={17} />
+                <div className={cn(
+                  "flex items-center justify-center w-9 h-9 rounded-xl transition-all duration-200",
+                  isActive ? `${colors.bg} border ${colors.icon}` : ""
+                )}>
+                  <Icon size={18} />
                 </div>
-                <span className={cn("text-[9px] font-bold tracking-tight", isActive ? colors.active : "text-zinc-400")}>{t(`tab.${tab}`)}</span>
+                <span className="text-[9px] font-bold tracking-tight leading-none">{t(`tab.${tab}`)}</span>
+                {tab === "closet" && closet.length > 0 && isActive && (
+                  <span className={cn("absolute top-1.5 right-2 rounded-full text-[8px] font-black px-1 py-0.5 text-white", colors.dot)}>
+                    {closet.length}
+                  </span>
+                )}
               </button>
             );
           })}
         </div>
+        {/* Safe area spacer for notch phones */}
+        <div className="h-safe-bottom" />
       </div>
 
-      {/* LANGUAGE SELECTOR - sleeker float for mobile / fallback */}
-      <div className="fixed bottom-20 right-4 z-50 md:hidden">
-        <div className="flex items-center gap-1 rounded-full border border-violet-200/60 shadow-lg px-2 py-1" style={{background:"rgba(255,255,255,0.95)", backdropFilter:"blur(12px)"}}>
-          <Globe size={12} className="text-violet-400 ml-1" />
+      {/* MOBILE: lang + theme toggle */}
+      <div className="fixed bottom-20 right-3 z-50 sm:hidden flex flex-col gap-2">
+        <button
+          onClick={toggleTheme}
+          className="theme-toggle shadow-lg"
+          aria-label="Toggle theme"
+        >
+          {theme === "dark"
+            ? <Sun size={15} className="text-yellow-400" />
+            : <Moon size={15} className="text-violet-500" />
+          }
+        </button>
+        <div className="flex flex-col gap-0.5 rounded-xl border p-1 shadow-lg" style={{background:"var(--nav-bg)", borderColor:"var(--border-card)"}}>
           {(["vi", "en"] as Lang[]).map(l => (
             <button
               key={l}
               onClick={() => setLang(l)}
               className={cn(
-                "px-2 py-0.5 text-[10px] font-black rounded-full transition-all",
+                "w-9 h-8 text-[10px] font-black rounded-lg transition-all",
                 lang === l
                   ? "bg-gradient-to-br from-violet-600 to-indigo-600 text-white shadow-sm"
-                  : "text-zinc-500 hover:text-violet-700"
+                  : ""
               )}
+              style={lang !== l ? {color:"var(--text-muted)"} : undefined}
             >
               {l === "vi" ? "VI" : "EN"}
             </button>
