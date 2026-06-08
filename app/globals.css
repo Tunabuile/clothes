@@ -531,3 +531,182 @@ input[type="range"]::-moz-range-thumb {
     border-color: var(--input-border) !important;
   }
 }
+
+/* ─────────────────────────────────────────────────────────────
+   DARK MODE — OutfitSuggestion, AIStyleProfile, Uploaders,
+   LabelScanner, SmartImage overrides
+───────────────────────────────────────────────────────────── */
+[data-theme="dark"] {
+
+  /* ── Combo cards (OutfitSuggestion) ── */
+  .border-violet-300 { border-color: rgba(139,92,246,0.45) !important; }
+  .border-violet-200 { border-color: rgba(139,92,246,0.30) !important; }
+  .hover\:bg-zinc-50:hover { background-color: #20203a !important; }
+
+  /* Occasion / weather inactive buttons */
+  .border-violet-100 { border-color: rgba(139,92,246,0.20) !important; }
+  .border-sky-100    { border-color: rgba(14,165,233,0.20) !important; }
+  .text-sky-700      { color: #38bdf8 !important; }
+  .text-violet-700   { color: #c4b5fd !important; }
+
+  /* Combo header hover */
+  .hover\:bg-zinc-50:hover { background-color: rgba(255,255,255,0.04) !important; }
+
+  /* Item thumbnail borders */
+  .border-white { border-color: #2e2e4a !important; }
+
+  /* Reasoning / tips boxes */
+  .bg-amber-50  { background-color: rgba(245,158,11,0.10) !important; }
+  .text-amber-700 { color: #fcd34d !important; }
+
+  /* Generate image button */
+  .border-dashed.border-violet-300 { border-color: rgba(139,92,246,0.40) !important; }
+
+  /* Feedback rated badge */
+  .border-green-200.bg-green-50 {
+    background-color: rgba(22,163,74,0.12) !important;
+    border-color: rgba(22,163,74,0.30) !important;
+  }
+
+  /* Rate button */
+  .border-zinc-200.text-zinc-500 {
+    border-color: #3a3a5c !important;
+    color: #9d99cc !important;
+  }
+
+  /* ── AIStyleProfile ── */
+  .from-violet-50.to-indigo-50 {
+    --tw-gradient-from: rgba(139,92,246,0.10) !important;
+    --tw-gradient-to: rgba(99,102,241,0.08) !important;
+  }
+  .border-indigo-50  { border-color: rgba(99,102,241,0.20) !important; }
+
+  /* Stats cards */
+  .rounded-2xl.border.border-zinc-200.bg-white {
+    background-color: #1c1c2e !important;
+    border-color: #2e2e4a !important;
+  }
+
+  /* Style summary box */
+  .border-violet-100.bg-violet-50 {
+    background-color: rgba(139,92,246,0.10) !important;
+    border-color: rgba(139,92,246,0.25) !important;
+  }
+
+  /* Liked/disliked combos */
+  .border-green-100.bg-green-50 {
+    background-color: rgba(22,163,74,0.10) !important;
+    border-color: rgba(22,163,74,0.20) !important;
+  }
+  .border-red-100.bg-red-50 {
+    background-color: rgba(239,68,68,0.10) !important;
+    border-color: rgba(239,68,68,0.20) !important;
+  }
+  .text-red-700  { color: #fca5a5 !important; }
+  .text-green-700 { color: #86efac !important; }
+
+  /* ── ImageUploader / MultiImageUploader ── */
+  .border-zinc-200.bg-white.px-4.py-3 {
+    background-color: #1c1c2e !important;
+    border-color: #3a3a5c !important;
+    color: #ede8ff !important;
+  }
+  .border-zinc-200.bg-zinc-50 {
+    background-color: #18182a !important;
+    border-color: #2e2e4a !important;
+  }
+  .text-zinc-700 { color: #b8b4e0 !important; }
+
+  /* Remove button overlay */
+  .bg-white\/90 { background-color: rgba(28,28,46,0.92) !important; }
+
+  /* ── LabelScanner ── */
+  .border-green-100.bg-gradient-to-br {
+    background: linear-gradient(135deg, rgba(22,163,74,0.10), rgba(16,185,129,0.08)) !important;
+    border-color: rgba(22,163,74,0.25) !important;
+  }
+  /* Eco score bar background */
+  .bg-zinc-100.overflow-hidden { background-color: #2a2a42 !important; }
+
+  /* Material info row chips */
+  .bg-zinc-100.px-3.py-1 {
+    background-color: #22223a !important;
+    color: #b8b4e0 !important;
+  }
+
+  /* Care instruction chips */
+  .bg-blue-50.border-blue-200 {
+    background-color: rgba(59,130,246,0.12) !important;
+    border-color: rgba(59,130,246,0.25) !important;
+  }
+  .text-blue-700 { color: #93c5fd !important; }
+
+  /* Decomposition time chip */
+  .bg-red-50.border-red-200 {
+    background-color: rgba(239,68,68,0.10) !important;
+    border-color: rgba(239,68,68,0.20) !important;
+  }
+  .text-red-600 { color: #fca5a5 !important; }
+
+  /* Recycle suggestion expanded bg */
+  .border-t.border-zinc-100.p-4.bg-zinc-50 {
+    background-color: #18182a !important;
+    border-color: #2a2a42 !important;
+  }
+  /* Material pill in expanded */
+  .bg-white.border.border-zinc-200.px-2\.5 {
+    background-color: #1c1c2e !important;
+    border-color: #3a3a5c !important;
+    color: #b8b4e0 !important;
+  }
+
+  /* Sustainability tips box */
+  .border-green-100.bg-green-50.p-4 {
+    background-color: rgba(22,163,74,0.10) !important;
+    border-color: rgba(22,163,74,0.20) !important;
+  }
+
+  /* ── SmartImage skeleton ── */
+  .bg-zinc-100.animate-pulse { background-color: #22223a !important; }
+  .bg-zinc-100.flex.items-center { background-color: #18182a !important; }
+
+  /* ── MultiImageUploader add-more strip ── */
+  .border-dashed.border-zinc-200.bg-zinc-50.py-3 {
+    background-color: #18182a !important;
+    border-color: #3a3a5c !important;
+    color: #9d99cc !important;
+  }
+
+  /* ── VIBE COLOR badges in OutfitSuggestion ── */
+  .bg-orange-100  { background-color: rgba(249,115,22,0.15) !important; }
+  .text-orange-700 { color: #fb923c !important; }
+  .bg-blue-100    { background-color: rgba(59,130,246,0.15) !important; }
+  .text-blue-700  { color: #93c5fd !important; }
+  .bg-purple-100  { background-color: rgba(168,85,247,0.15) !important; }
+  .text-purple-700 { color: #d8b4fe !important; }
+  .bg-green-100   { background-color: rgba(22,163,74,0.15) !important; }
+  .bg-pink-100    { background-color: rgba(236,72,153,0.15) !important; }
+  .text-pink-700  { color: #f9a8d4 !important; }
+
+  /* ── LabelScanner category colors ── */
+  .bg-green-100.text-green-700.border-green-200 {
+    background-color: rgba(22,163,74,0.15) !important;
+    border-color: rgba(22,163,74,0.30) !important;
+    color: #86efac !important;
+  }
+  .bg-violet-100.text-violet-700.border-violet-200 {
+    background-color: rgba(139,92,246,0.15) !important;
+    border-color: rgba(139,92,246,0.30) !important;
+    color: #c4b5fd !important;
+  }
+  .bg-pink-100.text-pink-700.border-pink-200 {
+    background-color: rgba(236,72,153,0.15) !important;
+    border-color: rgba(236,72,153,0.30) !important;
+    color: #f9a8d4 !important;
+  }
+  .bg-blue-100.text-blue-700.border-blue-200 {
+    background-color: rgba(59,130,246,0.15) !important;
+    border-color: rgba(59,130,246,0.30) !important;
+    color: #93c5fd !important;
+  }
+}
