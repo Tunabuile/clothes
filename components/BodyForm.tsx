@@ -28,21 +28,21 @@ export default function BodyForm({ height, weight, onChange }: BodyFormProps) {
 
   return (
     <div className="card p-5 space-y-4">
-      <h3 className="font-semibold text-zinc-800 text-sm flex items-center gap-2">
+      <h3 className="font-semibold text-sm flex items-center gap-2" style={{color:"var(--text-base)"}}>
         <span className="w-1.5 h-5 bg-violet-500 rounded-full" />
         {t("tryon.height")} & {t("tryon.weight")}
       </h3>
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <label className="text-xs font-medium text-zinc-500">{t("tryon.height")} (cm)</label>
+          <label className="text-xs font-medium" style={{color:"var(--text-muted)"}}>{t("tryon.height")} (cm)</label>
           <input type="number" min={100} max={250} value={height || ""}
             onChange={(e) => onChange("height", Number(e.target.value))} placeholder="170" className="input-modern" />
           <input type="range" min={140} max={210} value={height || 170}
             onChange={(e) => onChange("height", Number(e.target.value))} className="w-full accent-violet-500" />
         </div>
         <div className="space-y-2">
-          <label className="text-xs font-medium text-zinc-500">{t("tryon.weight")} (kg)</label>
+          <label className="text-xs font-medium" style={{color:"var(--text-muted)"}}>{t("tryon.weight")} (kg)</label>
           <input type="number" min={30} max={200} value={weight || ""}
             onChange={(e) => onChange("weight", Number(e.target.value))} placeholder="60" className="input-modern" />
           <input type="range" min={30} max={150} value={weight || 60}
@@ -51,18 +51,18 @@ export default function BodyForm({ height, weight, onChange }: BodyFormProps) {
       </div>
 
       {bmi && (
-        <div className="flex items-center justify-between rounded-xl bg-gradient-to-r from-zinc-50 to-violet-50 border border-violet-100/50 px-4 py-3 shadow-inner">
+        <div className="flex items-center justify-between rounded-xl px-4 py-3" style={{background:"var(--surface)", border:"1px solid var(--border-card)"}}>
           <div>
-            <p className="text-[10px] uppercase font-bold tracking-wider text-zinc-400">BMI</p>
+            <p className="text-[10px] uppercase font-bold tracking-wider" style={{color:"var(--text-muted)"}}>BMI</p>
             <p className={cn("text-2xl font-black", bmiColor)}>{bmi}</p>
           </div>
           <div className="text-center">
-            <p className="text-[10px] uppercase font-bold tracking-wider text-zinc-400">{t("tryon.bmi.status")}</p>
+            <p className="text-[10px] uppercase font-bold tracking-wider" style={{color:"var(--text-muted)"}}>{t("tryon.bmi.status")}</p>
             <p className={cn("text-sm font-bold mt-1", bmiColor)}>{translatedBodyType}</p>
           </div>
           <div className="text-right">
-            <p className="text-[10px] uppercase font-bold tracking-wider text-zinc-400">{t("tryon.height")}</p>
-            <p className="text-sm font-bold text-zinc-700 mt-1">{height} cm</p>
+            <p className="text-[10px] uppercase font-bold tracking-wider" style={{color:"var(--text-muted)"}}>{t("tryon.height")}</p>
+            <p className="text-sm font-bold mt-1" style={{color:"var(--text-base)"}}>{height} cm</p>
           </div>
         </div>
       )}

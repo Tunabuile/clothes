@@ -357,7 +357,8 @@ export default function Home() {
                   <button
                     onClick={handleAddToCloset}
                     disabled={(!clothImages.length && !clothBase64) || isAnalyzing}
-                    className="flex items-center justify-center gap-2 rounded-xl border border-zinc-200 bg-white py-3 text-sm font-semibold text-zinc-600 hover:bg-zinc-50 transition disabled:opacity-40"
+                    className="flex items-center justify-center gap-2 rounded-xl border px-4 py-3 text-sm font-semibold transition disabled:opacity-40 min-h-[44px]"
+                    style={{background:"var(--surface)", borderColor:"var(--border-card)", color:"var(--text-muted)"}}
                   >
                     <Plus size={15} />
                     {isAnalyzing
@@ -369,7 +370,7 @@ export default function Home() {
                 </div>
 
                 {error && (
-                  <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-600">
+                  <div className="rounded-xl border px-4 py-3 text-sm text-red-500" style={{background:"rgba(239,68,68,0.08)", borderColor:"rgba(239,68,68,0.2)"}}>
                     ⚠️ {error}
                   </div>
                 )}
@@ -446,12 +447,18 @@ export default function Home() {
                 </div>
 
                 {closet.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-zinc-200 bg-white/60 px-6 py-20 text-center">
-                    <div className="mb-4 rounded-2xl bg-zinc-100 p-5 ring-1 ring-zinc-200/80">
-                      <Shirt size={40} className="text-zinc-300" />
+                  <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed px-6 py-16 text-center" style={{borderColor:"var(--border-card)", background:"var(--surface-alpha)"}}>
+                    <div className="mb-4 rounded-2xl p-5" style={{background:"var(--surface)", border:"1px solid var(--border-card)"}}>
+                      <Shirt size={36} style={{color:"var(--text-muted)", opacity:0.5}} />
                     </div>
-                    <p className="font-semibold text-zinc-600">{t("closet.empty")}</p>
-                    <p className="mt-1 max-w-sm text-sm text-zinc-400">{t("closet.empty.hint")}</p>
+                    <p className="font-semibold" style={{color:"var(--text-muted)"}}>{t("closet.empty")}</p>
+                    <p className="mt-1 max-w-sm text-sm" style={{color:"var(--text-muted)", opacity:0.7}}>{t("closet.empty.hint")}</p>
+                    <button
+                      onClick={() => setActiveTab("tryon")}
+                      className="btn-primary mt-4 inline-flex items-center gap-1.5 px-5 py-2.5 text-sm"
+                    >
+                      <Plus size={14} /> {t("closet.add")}
+                    </button>
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
@@ -489,17 +496,15 @@ export default function Home() {
 
         {activeTab === "recycle" && (
           <div className="animate-fade-in">
-            <div className="mb-6 rounded-2xl p-5 section-header-recycle">
-              <div className="flex items-center gap-3">
-                <div className="rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 p-2.5 shadow-lg shadow-emerald-200">
-                  <Recycle size={18} className="text-white" />
-                </div>
-                <div>
-                  <h2 className="text-xl font-extrabold" style={{background:"linear-gradient(135deg,#16a34a,#0d9488)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent"}}>{t("recycle.title")}</h2>
-                  <p className="text-xs text-emerald-600 font-medium mt-0.5">{t("recycle.subtitle")}</p>
-                </div>
-                <span className="ml-auto badge-recycle">ECO ♻</span>
+            <div className="mb-5 rounded-2xl p-4 border flex items-center gap-3" style={{background:"var(--surface-alpha)", borderColor:"var(--border-card)"}}>
+              <div className="rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 p-2.5 shadow-lg shadow-emerald-200 shrink-0">
+                <Recycle size={17} className="text-white" />
               </div>
+              <div className="min-w-0 flex-1">
+                <h2 className="text-lg font-extrabold text-emerald-600">{t("recycle.title")}</h2>
+                <p className="text-xs font-medium mt-0.5 truncate" style={{color:"var(--text-muted)"}}>{t("recycle.subtitle")}</p>
+              </div>
+              <span className="badge-recycle shrink-0">ECO ♻</span>
             </div>
             <RecycleHub />
           </div>

@@ -62,20 +62,21 @@ export default function ClothingCard({
   return (
     <article
       className={cn(
-        "group relative overflow-hidden rounded-2xl border bg-white shadow-sm transition-all duration-200 hover:shadow-xl hover:-translate-y-1",
-        isSelected ? "border-violet-400 ring-2 ring-violet-200 shadow-violet-100" : "border-zinc-200/80 hover:border-violet-300",
+        "group relative overflow-hidden rounded-2xl border shadow-sm transition-all duration-200 hover:shadow-xl hover:-translate-y-1",
+        isSelected ? "border-violet-400 ring-2 ring-violet-200 shadow-violet-100" : "hover:border-violet-300",
         isDusty && "border-amber-300"
       )}
+      style={{background:"var(--surface)", borderColor: isSelected ? undefined : "var(--border-card)"}}
     >
       {/* Colored gradient top strip */}
       <div className={cn("absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r", isSelected ? "from-violet-500 to-pink-500" : "from-transparent via-violet-200 to-transparent opacity-0 group-hover:opacity-100")} style={{transition:"opacity 0.3s"}} />
 
-      <div className={cn("relative aspect-[4/5] bg-gradient-to-b", getCardGradient(item.id))}>
+      <div className={cn("relative aspect-[4/5]", `bg-gradient-to-b ${getCardGradient(item.id)}`)}>
         <Image
           src={item.imageUrl}
           alt={item.type}
           fill
-          className="object-contain p-4 transition-transform duration-300 group-hover:scale-108"
+          className="object-contain p-4 transition-transform duration-300 group-hover:scale-105"
           sizes="(max-width: 640px) 50vw, 20vw"
         />
 
@@ -105,11 +106,11 @@ export default function ClothingCard({
         </div>
       </div>
 
-      <div className="space-y-2 border-t border-zinc-100 bg-white p-3.5">
+      <div className="space-y-2 border-t p-3.5" style={{borderColor:"var(--border-card)", background:"var(--surface)"}}>
         <div className="flex items-start justify-between gap-2">
           <div className="flex min-w-0 items-center gap-1.5">
             <Shirt size={13} className="shrink-0 text-violet-400" />
-            <h3 className="truncate text-sm font-bold text-zinc-900">{item.type}</h3>
+            <h3 className="truncate text-sm font-bold" style={{color:"var(--text-base)"}}>{item.type}</h3>
           </div>
           <span
             className={cn(

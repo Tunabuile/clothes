@@ -57,11 +57,11 @@ export default function OutfitFeedback({
     <div className="flex flex-col gap-4 p-4">
       <div className="flex items-center justify-between">
         <div>
-          <p className="font-semibold text-zinc-800">Đánh giá outfit</p>
-          <p className="text-xs text-zinc-400">{outfitName}</p>
+          <p className="font-semibold" style={{color:"var(--text-base)"}}>Đánh giá outfit</p>
+          <p className="text-xs" style={{color:"var(--text-muted)"}}>{outfitName}</p>
         </div>
-        <button onClick={onClose} className="rounded-full p-1 hover:bg-zinc-100">
-          <X size={16} className="text-zinc-400" />
+        <button onClick={onClose} className="rounded-full p-1.5 transition" style={{color:"var(--text-muted)"}}>
+          <X size={16} />
         </button>
       </div>
 
@@ -98,7 +98,7 @@ export default function OutfitFeedback({
 
       {/* Quick feedback tags */}
       <div className="flex flex-col gap-2">
-        <p className="text-xs font-medium text-zinc-600">Chi tiết (chọn nhiều):</p>
+        <p className="text-xs font-medium" style={{color:"var(--text-muted)"}}>Chi tiết (chọn nhiều):</p>
         <div className="flex flex-wrap gap-1.5">
           {FEEDBACK_OPTIONS.map((opt) => (
             <button
@@ -109,11 +109,12 @@ export default function OutfitFeedback({
                 )
               }
               className={cn(
-                "rounded-full px-3 py-1 text-xs font-medium transition",
+                "rounded-full px-3 py-1.5 text-xs font-medium transition min-h-[36px]",
                 selectedFeedback.includes(opt)
                   ? "bg-violet-600 text-white"
-                  : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
+                  : ""
               )}
+              style={!selectedFeedback.includes(opt) ? {background:"var(--surface)", border:"1px solid var(--border-card)", color:"var(--text-muted)"} : undefined}
             >
               {opt}
             </button>
