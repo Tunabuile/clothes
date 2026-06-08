@@ -429,3 +429,105 @@ input[type="range"]::-moz-range-thumb {
     font-size: 1rem !important;
   }
 }
+
+/* ─────────────────────────────────────────────────────────────
+   DARK MODE — override hardcoded Tailwind colors in components
+   that still use bg-white / bg-zinc-* / text-zinc-* directly
+───────────────────────────────────────────────────────────── */
+[data-theme="dark"] {
+  /* Generic white/zinc backgrounds → dark surface */
+  .bg-white          { background-color: #1c1c2e !important; }
+  .bg-zinc-50        { background-color: #18182a !important; }
+  .bg-zinc-100       { background-color: #22223a !important; }
+  .bg-zinc-200       { background-color: #2a2a42 !important; }
+
+  /* Text */
+  .text-zinc-900     { color: #ede8ff !important; }
+  .text-zinc-800     { color: #d4d0f0 !important; }
+  .text-zinc-700     { color: #b8b4e0 !important; }
+  .text-zinc-600     { color: #9d99cc !important; }
+  .text-zinc-500     { color: #8a86b8 !important; }
+  .text-zinc-400     { color: #6e6a96 !important; }
+  .text-zinc-300     { color: #5a567e !important; }
+
+  /* Borders */
+  .border-zinc-100   { border-color: #2a2a42 !important; }
+  .border-zinc-200   { border-color: #2e2e4a !important; }
+  .border-zinc-300   { border-color: #3a3a5c !important; }
+
+  /* Hover states */
+  .hover\:bg-zinc-50:hover    { background-color: #20203a !important; }
+  .hover\:bg-zinc-100:hover   { background-color: #26263e !important; }
+  .hover\:bg-zinc-200:hover   { background-color: #2e2e4a !important; }
+
+  /* Green tones (RecycleHub) */
+  .bg-green-50       { background-color: rgba(22,163,74,0.10) !important; }
+  .bg-green-100      { background-color: rgba(22,163,74,0.15) !important; }
+  .border-green-100  { border-color: rgba(22,163,74,0.25) !important; }
+  .border-green-200  { border-color: rgba(22,163,74,0.30) !important; }
+  .border-green-300  { border-color: rgba(22,163,74,0.40) !important; }
+  .text-green-700    { color: #86efac !important; }
+  .text-green-800    { color: #4ade80 !important; }
+
+  /* Emerald tones */
+  .bg-emerald-50     { background-color: rgba(16,185,129,0.10) !important; }
+  .from-green-50     { --tw-gradient-from: rgba(22,163,74,0.08) !important; }
+  .to-emerald-50     { --tw-gradient-to: rgba(16,185,129,0.08) !important; }
+
+  /* Violet tones */
+  .bg-violet-50      { background-color: rgba(139,92,246,0.12) !important; }
+  .bg-violet-100     { background-color: rgba(139,92,246,0.18) !important; }
+  .border-violet-100 { border-color: rgba(139,92,246,0.25) !important; }
+  .border-violet-200 { border-color: rgba(139,92,246,0.30) !important; }
+  .from-violet-50    { --tw-gradient-from: rgba(139,92,246,0.08) !important; }
+  .to-pink-50        { --tw-gradient-to: rgba(236,72,153,0.08) !important; }
+
+  /* Amber tones */
+  .bg-amber-50       { background-color: rgba(245,158,11,0.10) !important; }
+  .border-amber-200  { border-color: rgba(245,158,11,0.30) !important; }
+  .text-amber-700    { color: #fcd34d !important; }
+  .text-amber-950    { color: #fde68a !important; }
+
+  /* Sky/blue tones */
+  .bg-sky-50         { background-color: rgba(14,165,233,0.10) !important; }
+  .border-sky-200    { border-color: rgba(14,165,233,0.25) !important; }
+  .ring-sky-200      { --tw-ring-color: rgba(14,165,233,0.25) !important; }
+
+  /* Pink/rose tones */
+  .bg-pink-50        { background-color: rgba(236,72,153,0.10) !important; }
+  .bg-pink-100       { background-color: rgba(236,72,153,0.15) !important; }
+  .border-pink-100   { border-color: rgba(236,72,153,0.20) !important; }
+
+  /* Red */
+  .bg-red-50         { background-color: rgba(239,68,68,0.10) !important; }
+  .border-red-200    { border-color: rgba(239,68,68,0.25) !important; }
+
+  /* IdeaCard specific */
+  .border-green-300  { border-color: rgba(22,163,74,0.40) !important; }
+
+  /* Modal / dialog */
+  [role="dialog"] {
+    background-color: #1c1c2e !important;
+    border-color: #2e2e4a !important;
+    color: #ede8ff !important;
+  }
+  [role="dialog"] input,
+  [role="dialog"] textarea,
+  [role="dialog"] select {
+    background-color: #14142a !important;
+    border-color: #3a3a5c !important;
+    color: #ede8ff !important;
+  }
+  [role="dialog"] label span,
+  [role="dialog"] h4,
+  [role="dialog"] p {
+    color: #b8b4e0;
+  }
+
+  /* Select elements globally */
+  select {
+    background-color: var(--input-bg) !important;
+    color: var(--input-text) !important;
+    border-color: var(--input-border) !important;
+  }
+}

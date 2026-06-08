@@ -129,12 +129,13 @@ export default function DreaminaStudio() {
       )}
 
       <div className="flex items-center justify-between mb-6 animate-slide-up">
-        <h2 className="text-xl font-bold text-zinc-900 flex items-center gap-2">
-          <Shirt size={22} className="text-violet-600" /> {t("studio.title")}
+        <h2 className="text-xl font-bold flex items-center gap-2" style={{color:"var(--text-base)"}}>
+          <Shirt size={22} className="text-violet-500" /> {t("studio.title")}
           <span className="tag tag-violet text-[10px]">{t("studio.free")}</span>
         </h2>
         <button onClick={() => setShowHistory(!showHistory)}
-          className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm transition-all", showHistory ? "bg-violet-100 text-violet-700" : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200")}>
+          className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm transition-all border", showHistory ? "bg-violet-100 text-violet-700 border-violet-200" : "border-transparent")}
+          style={!showHistory ? {background:"var(--surface)", color:"var(--text-muted)"} : undefined}>
           <History size={16} /> {t("studio.history")}
           {history.length > 0 && <span className="bg-violet-600 text-white text-[10px] px-1.5 py-0.5 rounded-full">{history.length}</span>}
         </button>
@@ -143,19 +144,19 @@ export default function DreaminaStudio() {
       {showHistory && (
         <div className="mb-6 card p-4">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-semibold text-zinc-700">{t("studio.history")}</h3>
-            {history.length > 0 && <button onClick={ch} className="flex items-center gap-1 text-xs text-red-500 hover:text-red-700"><Trash2 size={12} /> {t("studio.history.clear")}</button>}
+            <h3 className="text-sm font-semibold" style={{color:"var(--text-base)"}}>{t("studio.history")}</h3>
+            {history.length > 0 && <button onClick={ch} className="flex items-center gap-1 text-xs text-red-500 hover:text-red-400"><Trash2 size={12} /> {t("studio.history.clear")}</button>}
           </div>
           {history.length === 0 ? (
-            <p className="text-xs text-zinc-400 text-center py-4">{t("studio.history.empty")}</p>
+            <p className="text-xs text-center py-4" style={{color:"var(--text-muted)"}}>{t("studio.history.empty")}</p>
           ) : (
             <div className="flex gap-3 overflow-x-auto pb-2">
               {history.map((item) => (
                 <button key={item.id} onClick={() => uhf(item)} className="shrink-0 w-20 group">
-                  <div className="relative aspect-[3/4] rounded-xl overflow-hidden border border-zinc-200 bg-zinc-50 group-hover:border-violet-400 transition-all">
+                  <div className="relative aspect-[3/4] rounded-xl overflow-hidden border group-hover:border-violet-400 transition-all" style={{background:"var(--surface)", borderColor:"var(--border-card)"}}>
                     {item.resultBase64 && <Image src={`data:image/png;base64,${item.resultBase64}`} alt="" fill className="object-cover" />}
                   </div>
-                  <p className="text-[10px] text-zinc-400 mt-1 truncate">{new Date(item.timestamp).toLocaleTimeString()}</p>
+                  <p className="text-[10px] mt-1 truncate" style={{color:"var(--text-muted)"}}>{new Date(item.timestamp).toLocaleTimeString()}</p>
                 </button>
               ))}
             </div>
@@ -166,20 +167,20 @@ export default function DreaminaStudio() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="card p-5 space-y-4">
           <div>
-            <label className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2 block">{t("studio.person.label")}</label>
+            <label className="text-xs font-semibold uppercase tracking-wider mb-2 block" style={{color:"var(--text-muted)"}}>{t("studio.person.label")}</label>
             {personImage ? (
-              <div className="relative aspect-[3/4] rounded-xl overflow-hidden border border-zinc-200 bg-zinc-50">
+              <div className="relative aspect-[3/4] rounded-xl overflow-hidden border" style={{borderColor:"var(--border-card)", background:"var(--surface)"}}>
                 <Image src={personImage} alt="" fill className="object-contain" />
                 <button onClick={() => setPersonImage(null)} className="absolute top-2 right-2 bg-black/50 text-white p-1.5 rounded-full hover:bg-black/70 transition z-10"><Trash2 size={14} /></button>
                 <button onClick={() => oc("person")} className="absolute top-2 left-2 bg-black/50 text-white p-1.5 rounded-full hover:bg-black/70 transition z-10"><Camera size={14} /></button>
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-2">
-                <button onClick={() => pi.current?.click()} className="aspect-[3/4] rounded-xl border-2 border-dashed border-zinc-300 bg-zinc-50 flex flex-col items-center justify-center gap-2 hover:border-violet-400 hover:bg-violet-50 transition-all">
-                  <Upload size={24} className="text-zinc-300" /><span className="text-xs text-zinc-400">{t("studio.person.upload")}</span>
+                <button onClick={() => pi.current?.click()} className="aspect-[3/4] rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-2 hover:border-violet-400 transition-all" style={{borderColor:"var(--border-card)", background:"var(--surface)"}}>
+                  <Upload size={24} style={{color:"var(--text-muted)"}} /><span className="text-xs" style={{color:"var(--text-muted)"}}>{t("studio.person.upload")}</span>
                 </button>
-                <button onClick={() => oc("person")} className="aspect-[3/4] rounded-xl border-2 border-dashed border-zinc-300 bg-zinc-50 flex flex-col items-center justify-center gap-2 hover:border-violet-400 hover:bg-violet-50 transition-all">
-                  <Camera size={24} className="text-zinc-300" /><span className="text-xs text-zinc-400">{t("studio.person.camera")}</span>
+                <button onClick={() => oc("person")} className="aspect-[3/4] rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-2 hover:border-violet-400 transition-all" style={{borderColor:"var(--border-card)", background:"var(--surface)"}}>
+                  <Camera size={24} style={{color:"var(--text-muted)"}} /><span className="text-xs" style={{color:"var(--text-muted)"}}>{t("studio.person.camera")}</span>
                 </button>
               </div>
             )}
@@ -187,24 +188,25 @@ export default function DreaminaStudio() {
           </div>
 
           <div>
-            <label className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2 block">{t("studio.cloth.label")}</label>
+            <label className="text-xs font-semibold uppercase tracking-wider mb-2 block" style={{color:"var(--text-muted)"}}>{t("studio.cloth.label")}</label>
             <div className="grid grid-cols-2 gap-2 mb-3">
-              <button onClick={() => ci.current?.click()} className="aspect-square rounded-xl border-2 border-dashed border-violet-300 bg-violet-50 flex flex-col items-center justify-center gap-1 hover:border-violet-500 hover:bg-violet-100 transition-all">
-                <Plus size={20} className="text-violet-400" /><span className="text-[10px] text-violet-500 font-medium">{t("studio.cloth.add")}</span>
+              <button onClick={() => ci.current?.click()} className="aspect-square rounded-xl border-2 border-dashed border-violet-400 flex flex-col items-center justify-center gap-1 hover:border-violet-500 hover:bg-violet-50 transition-all" style={{background:"rgba(139,92,246,0.06)"}}>
+                <Plus size={20} className="text-violet-500" /><span className="text-[10px] text-violet-500 font-medium">{t("studio.cloth.add")}</span>
               </button>
-              <button onClick={() => oc("cloth")} className="aspect-square rounded-xl border-2 border-dashed border-zinc-300 bg-zinc-50 flex flex-col items-center justify-center gap-1 hover:border-violet-400 hover:bg-violet-50 transition-all">
-                <Camera size={20} className="text-zinc-300" /><span className="text-[10px] text-zinc-400">{t("studio.cloth.camera")}</span>
+              <button onClick={() => oc("cloth")} className="aspect-square rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-1 hover:border-violet-400 transition-all" style={{borderColor:"var(--border-card)", background:"var(--surface)"}}>
+                <Camera size={20} style={{color:"var(--text-muted)"}} /><span className="text-[10px]" style={{color:"var(--text-muted)"}}>{t("studio.cloth.camera")}</span>
               </button>
             </div>
             <input ref={ci} type="file" accept="image/*" multiple onChange={hc} className="hidden" />
             {clothItems.length > 0 && (
               <div>
-                <p className="text-xs text-zinc-400 mb-2">{t("studio.cloth.selected")} <span className="font-semibold text-violet-600">{clothItems.length}</span> {t("studio.cloth.hint")}</p>
+                <p className="text-xs mb-2" style={{color:"var(--text-muted)"}}>{t("studio.cloth.selected")} <span className="font-semibold text-violet-500">{clothItems.length}</span> {t("studio.cloth.hint")}</p>
                 <div className="grid grid-cols-4 gap-2">
                   {clothItems.map((item) => (
                     <div key={item.id} className="relative">
                       <button onClick={() => setSelectedClothId(item.id)}
-                        className={cn("relative aspect-square rounded-xl overflow-hidden border-2 bg-zinc-50 transition-all w-full", selectedClothId === item.id ? "border-violet-500 ring-2 ring-violet-200" : "border-zinc-200 hover:border-violet-300")}>
+                        className={cn("relative aspect-square rounded-xl overflow-hidden border-2 transition-all w-full", selectedClothId === item.id ? "border-violet-500 ring-2 ring-violet-200" : "hover:border-violet-300")}
+                        style={{background:"var(--surface)", borderColor: selectedClothId === item.id ? undefined : "var(--border-card)"}}>
                         <Image src={item.dataUrl} alt="" fill className="object-contain" />
                       </button>
                       <button onClick={() => rm(item.id)} className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full p-0.5 shadow hover:bg-red-600 z-10"><X size={12} /></button>
@@ -218,43 +220,45 @@ export default function DreaminaStudio() {
           <button onClick={hto} disabled={loading || !personImage || !clothImage} className="btn-primary w-full flex items-center justify-center gap-2 py-3.5">
             {loading ? <><Loader2 size={18} className="animate-spin" /> {t("studio.button.loading")}</> : <><Wand2 size={18} /> {t("studio.button.tryon")}</>}
           </button>
-          {error && <div className="flex items-start gap-2 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm"><AlertCircle size={16} className="shrink-0 mt-0.5" /><span>{error}</span></div>}
+          {error && <div className="flex items-start gap-2 p-3 rounded-xl border text-red-500 text-sm" style={{background:"rgba(239,68,68,0.08)", borderColor:"rgba(239,68,68,0.2)"}}><AlertCircle size={16} className="shrink-0 mt-0.5" /><span>{error}</span></div>}
         </div>
 
         <div className="card p-5">
-          <h3 className="text-sm font-semibold text-zinc-700 mb-4 flex items-center gap-2"><Sparkles size={16} className="text-violet-500" /> {t("studio.result.title")}</h3>
+          <h3 className="text-sm font-semibold mb-4 flex items-center gap-2" style={{color:"var(--text-base)"}}><Sparkles size={16} className="text-violet-500" /> {t("studio.result.title")}</h3>
 
           {loading && (
-            <div className="flex flex-col items-center justify-center gap-4 rounded-xl border-2 border-dashed border-violet-200 bg-violet-50 min-h-[350px]">
+            <div className="flex flex-col items-center justify-center gap-4 rounded-xl border-2 border-dashed border-violet-300 min-h-[350px]" style={{background:"rgba(139,92,246,0.06)"}}>
               <div className="relative"><div className="h-16 w-16 rounded-full border-4 border-violet-200 border-t-violet-600 animate-spin" /><Sparkles size={20} className="absolute inset-0 m-auto text-violet-500" /></div>
-              <div className="text-center"><p className="font-semibold text-violet-700">{t("studio.result.loading")}</p><p className="text-sm text-violet-400 mt-1">{t("studio.result.wait")}</p></div>
+              <div className="text-center"><p className="font-semibold text-violet-600">{t("studio.result.loading")}</p><p className="text-sm text-violet-400 mt-1">{t("studio.result.wait")}</p></div>
             </div>
           )}
 
           {!loading && !showResult && !error && (
-            <div className="flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-zinc-200 bg-zinc-50 min-h-[350px]">
-              <div className="rounded-full bg-zinc-100 p-6"><Shirt size={40} className="text-zinc-300" /></div>
-              <div className="text-center"><p className="font-semibold text-zinc-500">{t("studio.result.empty")}</p><p className="text-sm text-zinc-400 mt-1">{t("studio.result.hint")}</p></div>
+            <div className="flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed min-h-[350px]" style={{borderColor:"var(--border-card)", background:"var(--surface)"}}>
+              <div className="rounded-full p-6" style={{background:"var(--surface-alpha)"}}><Shirt size={40} style={{color:"var(--text-muted)", opacity:0.5}} /></div>
+              <div className="text-center">
+                <p className="font-semibold" style={{color:"var(--text-muted)"}}>{t("studio.result.empty")}</p>
+                <p className="text-sm mt-1" style={{color:"var(--text-muted)", opacity:0.7}}>{t("studio.result.hint")}</p>
+              </div>
             </div>
           )}
 
           {showResult && resultImage && !loading && (
             <div className="space-y-4">
-              <div className="relative rounded-xl overflow-hidden border border-zinc-200 bg-zinc-50">
+              <div className="relative rounded-xl overflow-hidden border" style={{borderColor:"var(--border-card)", background:"var(--surface)"}}>
                 <div className="relative aspect-[3/4] w-full">
                   <Image src={resultImage} alt={t("studio.result.after")} fill className="object-contain" />
                 </div>
               </div>
-
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   {modelUsed && <span className="tag tag-violet">{modelUsed}</span>}
                   <span className="text-[10px] tag tag-green">{t("studio.result.free")}</span>
                 </div>
                 <div className="flex gap-2">
-                  <button onClick={() => setShowZoom(true)} className="p-2 rounded-lg bg-zinc-100 text-zinc-600 hover:bg-zinc-200 transition" title={t("studio.zoom")}><ZoomIn size={16} /></button>
-                  <button onClick={hd} className="p-2 rounded-lg bg-zinc-100 text-zinc-600 hover:bg-zinc-200 transition" title={t("studio.download")}><Download size={16} /></button>
-                  <button onClick={hr} className="p-2 rounded-lg bg-zinc-100 text-zinc-600 hover:bg-zinc-200 transition" title={t("studio.reset")}><RotateCcw size={16} /></button>
+                  <button onClick={() => setShowZoom(true)} className="p-2 rounded-lg border transition" style={{background:"var(--surface)", borderColor:"var(--border-card)", color:"var(--text-muted)"}} title={t("studio.zoom")}><ZoomIn size={16} /></button>
+                  <button onClick={hd} className="p-2 rounded-lg border transition" style={{background:"var(--surface)", borderColor:"var(--border-card)", color:"var(--text-muted)"}} title={t("studio.download")}><Download size={16} /></button>
+                  <button onClick={hr} className="p-2 rounded-lg border transition" style={{background:"var(--surface)", borderColor:"var(--border-card)", color:"var(--text-muted)"}} title={t("studio.reset")}><RotateCcw size={16} /></button>
                 </div>
               </div>
             </div>
